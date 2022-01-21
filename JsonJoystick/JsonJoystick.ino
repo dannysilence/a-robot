@@ -1,4 +1,3 @@
-      
 #include <stdint.h>
 #define DELAY 400
 #define virbrationMotorPin 2
