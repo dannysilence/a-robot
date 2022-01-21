@@ -173,8 +173,8 @@ String writeData()
     int j = 0;
     if((i < 2 && buttonState[i] < 100) || (i > 2 && buttonState[i] == 0))
     {
+      if(i<16 && j++>0) { x += ","; }
       x+= "\""; x+= Buttons[i]; x+="\"";
-      if(i+1 < 17) { x += ", "; }
     }
   }
   x+="], \"sticks\": [";
