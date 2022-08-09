@@ -224,11 +224,13 @@ void loop()
 
         //Control Vehicle Lights
         if((pressedL1 && pressedL2)
-        || (pressedL1 && pressedU)
-        || (pressedL1 && pressedD))
+        || (pressedL1 && !pressedL2)
+        || (!pressedL1 && pressedL2))
         {  
             bool l0 = (pressedL1 && pressedL2) ? !_l0 : _l0;
-            int16_t l1 = (pressedL1 && pressedL2) ? _l1 + VEHICLE_LIGHT_STEP : _l1  - VEHICLE_LIGHT_STEP;  
+            int16_t l1 = _l1;
+            l1 = (pressedL1) ? _l1 + VEHICLE_LIGHT_STEP : l1;  
+            l1 = (pressedL2) ? _l1 - VEHICLE_LIGHT_STEP : l1;  
             
             if(l1 < 0) l1 = 0; else
             if(l1 > 0xFF) l1 = 0xFF;
