@@ -191,8 +191,6 @@ void loop()
         v1 = receivedBytes[2];
         v2 = receivedBytes[1];
 
-        //b1 = receivedBytes[4];
-        //b2 = receivedBytes[5];
         b3 = receivedBytes[6];
         b4 = receivedBytes[7];
 
@@ -286,7 +284,7 @@ void loop()
 
 void checkButtons()
 {
-    if(b4 == _b4 && b3 == _b3 /*&& b2 == _b2 && b1 == _b1*/) return;
+    if(b4 == _b4 && b3 == _b3) return;
 
     pressed1      = ((b3 & 0x01) == 0x01);
     pressed2      = ((b3 & 0x04) == 0x04);
@@ -302,17 +300,13 @@ void checkButtons()
     pressedD      = ((b4 & 0x80) == 0x80);
     pressedStart  = ((b4 & 0x0B) == 0x0B);
     pressedSelect = ((b4 & 0x07) == 0x07);    
-    
-    /*_b1 = b1;
-    _b2 = b2;*/
+ 
     _b3 = b3;
     _b4 = b4;
 
     if(useLogs) 
     { 
         String m = "Buttons: ";
-        m += String(b1, HEX);
-        m += String(b2, HEX);
         m += String(b3, HEX);
         m += String(b4, HEX);
         m += " [";
