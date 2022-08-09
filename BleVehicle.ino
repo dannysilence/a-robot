@@ -17,8 +17,8 @@ int E2 = 7;    //PLL based M2 Speed Control
 int M1 = 5;    //PLL based M1 Direction Control
 int M2 = 6;    //PLL based M2 Direction Control
 
-int L1 = 5;    //Front Light Control
-int L2 = 6;    //Rare Light Control
+int L1 = 9;    //Front Light Control
+int L2 = 10;    //Rare Light Control
 
 Stream* _pad;
 Stream* _log;
@@ -140,9 +140,14 @@ void light(uint8_t level)
 
         if(useDelay) delay(DEBUG_DELAY);
     }
-  
-    digitalWrite(L1, level);
-    digitalWrite(L2, level);
+
+    byte x = level == 0 ? HIGH : LOW;
+    
+    digitalWrite(L1, x);
+    digitalWrite(L2, x);
+    delay(10);
+    analogWrite(L1, level);
+    analogWrite(L2, level);
 
     _l0 = level;
 }
@@ -165,8 +170,8 @@ void setup()
     int i;
     for(i=4;i<=7;i++) pinMode(i, OUTPUT);
 
-    //pinMode(L1, OUTPUT);
-    //pinMode(L2, OUTPUT);
+    pinMode(L1, OUTPUT);
+    pinMode(L2, OUTPUT);
 
     pinMode(A6, INPUT);
     pinMode(A7, INPUT);
@@ -215,7 +220,7 @@ void loop()
         if((pressedR2 && pressedL2)
         || (pressedR1 && pressedL1))
         {  
-            int16_t l = (pressedR1 && pressedL1) ? _l0 + 0x60 : _l0  - 0x60;  
+            int16_t l = (pressedR1 && pressedL1) ? _l0 + 0x20 : _l0  - 0x20;  
             if(l < 0) l = 0; else
             if(l > 0xFF) l = 0xFF;
             
