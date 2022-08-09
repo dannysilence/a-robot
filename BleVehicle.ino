@@ -1,11 +1,13 @@
 #include <SoftwareSerial.h>
 SoftwareSerial Serial1(2, 3);
 
-#define VEHICLE_CAR  0x01
-#define VEHICLE_TANK 0x02
-
-#define BLOCK_FROM   0xFF
-#define DEBUG_DELAY  0xFF 
+#define BLOCK_FROM           0xFF
+#define DEBUG_DELAY          0xFF  
+#define VEHICLE_CAR          0x01
+#define VEHICLE_TANK         0x02
+#define JOYSTICK_DATA_LENGTH 0x20
+#define JOYSTICK_DATA_START  0xAA
+#define JOYSTICK_DATA_END    0xBB
 
 const byte VEHICLE_TYPE = VEHICLE_CAR;    // car
 //const byte VEHICLE_TYPE = VEHICLE_TANK;    // tank
@@ -21,37 +23,40 @@ int L2 = 6;    //Rare Light Control
 Stream* _pad;
 Stream* _log;
 
-bool useLogs = false;
-bool useDelay = false;
-bool usePilot = false;
+bool useLogs       = false;
+bool useDelay      = false;
+bool usePilot      = false;
+bool blockRare     = false;
+bool blockFront    = false;
 
-bool blockRare = false;
-bool blockFront = false;
-
-bool pressed1 = false;
-bool pressed2 = false;
-bool pressed3 = false;
-bool pressed4 = false;
-bool pressedU = false;
-bool pressedL = false;
-bool pressedR = false;
-bool pressedD = false;
-bool pressedL1 = false;
-bool pressedL2 = false;
-bool pressedR1 = false;
-bool pressedR2 = false;
+// Joystick Buttons State Parts 
+bool pressed1      = false;
+bool pressed2      = false;
+bool pressed3      = false;
+bool pressed4      = false;
+bool pressedU      = false;
+bool pressedL      = false;
+bool pressedR      = false;
+bool pressedD      = false;
+bool pressedL1     = false;
+bool pressedL2     = false;
+bool pressedR1     = false;
+bool pressedR2     = false;
+bool pressedStart  = false;
 bool pressedSelect = false;
-bool pressedStart = false;
 
-bool newData = false;
 
-const uint8_t numBytes = 0x20;
+// Joystick Message Retrieving Parts
+bool newData       = false;
 uint8_t numReceived = 0;
-uint8_t receivedBytes[numBytes];
+uint8_t receivedBytes[JOYSTICK_DATA_LENGTH];
 
+// Vehicle Speed/State Parts
 uint8_t v1 = 0x7F, v2 = 0x7F;
-uint8_t /* b1 = 0x00, b2 = 0x00, _b1 = 0x00, _b2 = 0x00,  */ b3 = 0x00, b4 = 0x00, _b3 = 0x00, _b4 = 0x00, _l0 = 0x00;
+uint8_t _b3 = 0x00, _b4 = 0x00, b3 = 0x00, b4 = 0x00;
+uint8_t _l0 = 0x00;
 uint16_t rangeFront = 0, rangeRare = 0;
+
 
 void SetServoPos(byte a, byte b)
 {
@@ -374,7 +379,7 @@ void receiveBytes(Stream* stream)
 {
     static bool recvInProgress = false;
     static uint8_t ndx = 0;
-    const uint8_t startMarker = 0xAA, endMarker = 0xBB;
+
     uint8_t rb;   
 
     while (stream->available() > 0 && newData == false) 
@@ -383,12 +388,12 @@ void receiveBytes(Stream* stream)
 
         if (recvInProgress == true) 
         {
-            if (rb != endMarker) 
+            if (rb != JOYSTICK_DATA_END) 
             {
                 receivedBytes[ndx] = rb;
-                if (ndx++ >= numBytes) 
+                if (ndx++ >= JOYSTICK_DATA_LENGTH) 
                 {
-                    ndx = numBytes - 1;
+                    ndx = JOYSTICK_DATA_LENGTH - 1;
                 }
             }
             else 
@@ -401,7 +406,7 @@ void receiveBytes(Stream* stream)
             }
         }
 
-        else if (rb == startMarker) 
+        else if (rb == JOYSTICK_DATA_START) 
         {
             recvInProgress = true;
         }
