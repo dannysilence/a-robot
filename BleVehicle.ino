@@ -5,7 +5,7 @@ SoftwareSerial Serial1(2, 3);
 #define DEBUG_DELAY          0x7F  
 #define VEHICLE_CAR          0x01
 #define VEHICLE_TANK         0x02
-#define VEHICLE_LIGHT_STEP   0x40c
+#define VEHICLE_LIGHT_STEP   0x40
 #define JOYSTICK_DATA_LENGTH 0x20
 #define JOYSTICK_DATA_START  0xAA
 #define JOYSTICK_DATA_END    0xBB
