@@ -5,6 +5,7 @@ SoftwareSerial Serial1(2, 3);
 #define DEBUG_DELAY          0xFF  
 #define VEHICLE_CAR          0x01
 #define VEHICLE_TANK         0x02
+#define VEHICLE_LIGHT_STEP   0x08
 #define JOYSTICK_DATA_LENGTH 0x20
 #define JOYSTICK_DATA_START  0xAA
 #define JOYSTICK_DATA_END    0xBB
@@ -54,7 +55,8 @@ uint8_t receivedBytes[JOYSTICK_DATA_LENGTH];
 // Vehicle Speed/State Parts
 uint8_t v1 = 0x7F, v2 = 0x7F;
 uint8_t _b3 = 0x00, _b4 = 0x00, b3 = 0x00, b4 = 0x00;
-uint8_t _l0 = 0x00;
+bool _l0 = false;
+uint8_t _l1 = 0x7F;
 uint16_t rangeFront = 0, rangeRare = 0;
 
 
@@ -129,7 +131,7 @@ void DriveMotorP(byte m1p, byte m2p)
   }
 }
 
-void light(uint8_t level)
+void light(bool enabled, uint8_t level)
 {
     if(useLogs) 
     {        
@@ -141,15 +143,19 @@ void light(uint8_t level)
         if(useDelay) delay(DEBUG_DELAY);
     }
 
-    byte x = level == 0 ? HIGH : LOW;
+    byte x = level == 0 || enabled == false ? HIGH : LOW;
     
     digitalWrite(L1, x);
     digitalWrite(L2, x);
-    delay(10);
-    analogWrite(L1, level);
-    analogWrite(L2, level);
+    if(enabled)
+    {
+        delay(10);
+        analogWrite(L1, level);
+        analogWrite(L2, level);
+    }
 
-    _l0 = level;
+    _l1 = level;
+    _l0 = enabled;
 }
 
 const char * vehicleType()
@@ -217,14 +223,17 @@ void loop()
         if(pressedSelect && pressed4) useDelay = false;
 
         //Control Vehicle Lights
-        if((pressedR2 && pressedL2)
-        || (pressedR1 && pressedL1))
+        if((pressedL1 && pressedL2)
+        || (pressedL1 && pressedU)
+        || (pressedL1 && pressedD))
         {  
-            int16_t l = (pressedR1 && pressedL1) ? _l0 + 0x20 : _l0  - 0x20;  
-            if(l < 0) l = 0; else
-            if(l > 0xFF) l = 0xFF;
+            bool l0 = (pressedL1 && pressedL2) ? !_l0 : _l0;
+            int16_t l1 = (pressedL1 && pressedL2) ? _l1 + VEHICLE_LIGHT_STEP : _l1  - VEHICLE_LIGHT_STEP;  
             
-            light(l); 
+            if(l1 < 0) l1 = 0; else
+            if(l1 > 0xFF) l1 = 0xFF;
+            
+            light(l0, l1); 
         }
 
         //Control Autopilot Mode:)
