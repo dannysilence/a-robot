@@ -1,34 +1,22 @@
 #include <SoftwareSerial.h>
 SoftwareSerial Serial1(2, 3);
 
-#define VEHICLE_CAR  01
-#define VEHICLE_TANK 02
+#define VEHICLE_CAR  0x01
+#define VEHICLE_TANK 0x02
 
-#define DEBUG_DELAY 200
+#define BLOCK_FROM   0xFF
+#define DEBUG_DELAY  0xFF 
 
 const byte VEHICLE_TYPE = VEHICLE_CAR;    // car
 //const byte VEHICLE_TYPE = VEHICLE_TANK;    // tank
 
-int E1 = 4;    //M1 Speed Control
-int E2 = 7;    //M2 Speed Control
-int M1 = 5;    //M1 Direction Control
-int M2 = 6;    //M2 Direction Control
+int E1 = 4;    //PLL based M1 Speed Control
+int E2 = 7;    //PLL based M2 Speed Control
+int M1 = 5;    //PLL based M1 Direction Control
+int M2 = 6;    //PLL based M2 Direction Control
 
-int L1 = 5;    //L1 Light Control
-int L2 = 6;    //L2 Light Control
-
-int BTN1 = 0x0100;
-int BTN2 = 0x0400;
-int BTN3 = 0x0800;
-int BTN4 = 0x0200;
-int BTNR1 = 0x1000;
-int BTNR2 = 0x2000;
-int BTNL1 = 0x4000;
-int BTNL2 = 0x800000;
-int BTNSTART = 0x0000000B;
-int BTNSELECT = 0x00000007;
-
-uint16_t BLOCK_FROM = 0x100;
+int L1 = 5;    //Front Light Control
+int L2 = 6;    //Rare Light Control
 
 Stream* _pad;
 Stream* _log;
@@ -55,14 +43,15 @@ bool pressedR2 = false;
 bool pressedSelect = false;
 bool pressedStart = false;
 
-const byte numBytes = 0x20;
-byte numReceived = 0;
-byte receivedBytes[numBytes];
+const uint8_t numBytes = 0x20;
+uint8_t numReceived = 0;
+uint8_t receivedBytes[numBytes];
 
-boolean newData = false;
+bool newData = false;
 
-byte v1 = 0x7F, v2 = 0x7F, b1 = 0x00, b2 = 0x00, b3 = 0x00, b4 = 0x00, _b1 = 0x00, _b2 = 0x00, _b3 = 0x00, _b4 = 0x00, _l0 = 0x00;
-int rangeFront = 0, rangeRare = 0;
+uint8_t v1 = 0x7F, v2 = 0x7F;
+uint8_t /* b1 = 0x00, b2 = 0x00, _b1 = 0x00, _b2 = 0x00,  */ b3 = 0x00, b4 = 0x00, _b3 = 0x00, _b4 = 0x00, _l0 = 0x00;
+uint16_t rangeFront = 0, rangeRare = 0;
 
 void SetServoPos(byte a, byte b)
 {
@@ -88,8 +77,8 @@ void DriveMotorP(byte m1p, byte m2p)
 
     if(VEHICLE_TYPE == VEHICLE_TANK)
     {
-      m1p => front-rare level value (Vl = ...)
-      m2p => left-right level value (Vr = ...)
+      m1p => front-rare level value (Vl = L*(1-sin(a)) )
+      m2p => left-right level value (Vr = L*(1-cos(a)) )
     }
   */
   if(useLogs) 
@@ -185,14 +174,11 @@ void setup()
     _pad = &(Serial);
     _log = &(Serial1);
 
-    //if(useLogs) 
-    //{
-        String m = "Robo";
-        m += vehicleType();
-        m += " is ready!";
+    String m = "Robo";
+    m += vehicleType();
+    m += " is ready!";
         
-        _log->println(m);
-    //}
+    _log->println(m);
 }
 
 void loop() 
@@ -200,14 +186,13 @@ void loop()
     receiveBytes(_pad);
     checkBlocks();
     
-
     if(showNewData())
     {
         v1 = receivedBytes[2];
         v2 = receivedBytes[1];
 
-        b1 = receivedBytes[4];
-        b2 = receivedBytes[5];
+        //b1 = receivedBytes[4];
+        //b2 = receivedBytes[5];
         b3 = receivedBytes[6];
         b4 = receivedBytes[7];
 
@@ -222,7 +207,7 @@ void loop()
 
         checkButtons();
 
-        //Contrrol Debug Logging and Delays
+        //Control Debug Logging and Delays
         if(pressedSelect && pressed1) useLogs = true;
         if(pressedSelect && pressed3) useLogs = false;
         if(pressedSelect && pressed2) useDelay = true;        
@@ -301,28 +286,25 @@ void loop()
 
 void checkButtons()
 {
-    if(b4 == _b4 && b3 == _b3 && b2 == _b2 && b1 == _b1) return;
-    
-    pressedStart = ((b4 & 0x0B) == 0x0B);
+    if(b4 == _b4 && b3 == _b3 /*&& b2 == _b2 && b1 == _b1*/) return;
+
+    pressed1      = ((b3 & 0x01) == 0x01);
+    pressed2      = ((b3 & 0x04) == 0x04);
+    pressed3      = ((b3 & 0x08) == 0x08);
+    pressed4      = ((b3 & 0x02) == 0x02);
+    pressedL1     = ((b3 & 0x40) == 0x40);
+    pressedL2     = ((b3 & 0x80) == 0x80);
+    pressedR1     = ((b3 & 0x10) == 0x10);
+    pressedR2     = ((b3 & 0x20) == 0x20); 
+    pressedU      = ((b4 & 0x10) == 0x10);
+    pressedL      = ((b4 & 0x20) == 0x20);
+    pressedR      = ((b4 & 0x40) == 0x40);
+    pressedD      = ((b4 & 0x80) == 0x80);
+    pressedStart  = ((b4 & 0x0B) == 0x0B);
     pressedSelect = ((b4 & 0x07) == 0x07);    
     
-    pressedU = ((b4 & 0x10) == 0x10);
-    pressedL = ((b4 & 0x20) == 0x20);
-    pressedR = ((b4 & 0x40) == 0x40);
-    pressedD = ((b4 & 0x80) == 0x80);
-    
-    pressed1 = ((b3 & 0x01) == 0x01);
-    pressed2 = ((b3 & 0x04) == 0x04);
-    pressed3 = ((b3 & 0x08) == 0x08);
-    pressed4 = ((b3 & 0x02) == 0x02);
-
-    pressedL1 = ((b3 & 0x40) == 0x40);
-    pressedL2 = ((b3 & 0x80) == 0x80);
-    pressedR1 = ((b3 & 0x10) == 0x10);
-    pressedR2 = ((b3 & 0x20) == 0x20);
-
-    _b1 = b1;
-    _b2 = b2;
+    /*_b1 = b1;
+    _b2 = b2;*/
     _b3 = b3;
     _b4 = b4;
 
@@ -335,23 +317,22 @@ void checkButtons()
         m += String(b4, HEX);
         m += " [";
         
-        if(pressedStart) m += ("START ");
+        if(pressedStart)  m += ("START ");
         if(pressedSelect) m += ("SELECT ");
-        if(pressedL1) m += ("L1 ");
-        if(pressedL2) m += ("L2 ");
-        if(pressedR1) m += ("R1 ");
-        if(pressedR2) m += ("R2 ");
-        if(pressed1) m += ("1 ");
-        if(pressed2) m += ("2 ");
-        if(pressed3) m += ("3 ");
-        if(pressed4) m += ("4 ");
-        if(pressedU) m += ("UP ");
-        if(pressedL) m += ("LEFT ");
-        if(pressedR) m += ("RIGHT ");
-        if(pressedD) m += ("DOWN ");
+        if(pressedL1)     m += ("L1 ");
+        if(pressedL2)     m += ("L2 ");
+        if(pressedR1)     m += ("R1 ");
+        if(pressedR2)     m += ("R2 ");
+        if(pressed1)      m += ("1 ");
+        if(pressed2)      m += ("2 ");
+        if(pressed3)      m += ("3 ");
+        if(pressed4)      m += ("4 ");
+        if(pressedU)      m += ("UP ");
+        if(pressedL)      m += ("LEFT ");
+        if(pressedR)      m += ("RIGHT ");
+        if(pressedD)      m += ("DOWN ");
         m += (" ]");
       
-  
         _log->println(m);
         if(useDelay) delay(DEBUG_DELAY);
     }
@@ -396,11 +377,10 @@ void checkBlocks()
 
 void receiveBytes(Stream* stream) 
 {
-    static boolean recvInProgress = false;
-    static byte ndx = 0;
-    const byte startMarker = 0xAA;
-    const byte endMarker = 0xBB;
-    byte rb;   
+    static bool recvInProgress = false;
+    static uint8_t ndx = 0;
+    const uint8_t startMarker = 0xAA, endMarker = 0xBB;
+    uint8_t rb;   
 
     while (stream->available() > 0 && newData == false) 
     {
@@ -439,13 +419,13 @@ bool showNewData()
     {
         if(useLogs) 
         {  
-            _log->print("This came in: ");
+            String m = "This came in: ";
             for (byte n = 0; n < numReceived; n++) 
             {
-                _log->print(receivedBytes[n], HEX);
-                _log->print(' ');
+                m += String(receivedBytes[n], HEX);
+                m += " ";
             }
-            _log->println();
+            _log->println(m);
         }
         
         newData = false;
