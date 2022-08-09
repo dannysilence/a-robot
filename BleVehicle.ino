@@ -35,6 +35,7 @@ Stream* _log;
 
 bool useLogs = false;
 bool useDelay = false;
+bool usePilot = false;
 
 bool blockRare = false;
 bool blockFront = false;
@@ -43,6 +44,10 @@ bool pressed1 = false;
 bool pressed2 = false;
 bool pressed3 = false;
 bool pressed4 = false;
+bool pressedU = false;
+bool pressedL = false;
+bool pressedR = false;
+bool pressedD = false;
 bool pressedL1 = false;
 bool pressedL2 = false;
 bool pressedR1 = false;
@@ -63,11 +68,11 @@ void SetServoPos(byte a, byte b)
 {
   if(VEHICLE_TYPE == VEHICLE_CAR)
   {
-  
+      //TODO
   } else
   if(VEHICLE_TYPE == VEHICLE_TANK)
   {
-    
+      //TODO
   }
 }
 
@@ -160,7 +165,7 @@ const char * vehicleType()
     case VEHICLE_CAR: return "Car";
     case VEHICLE_TANK: return "Tank";
   }
-  return "Unknown";
+  return "Something";
 }
 
 void setup() 
@@ -216,11 +221,14 @@ void loop()
         }
 
         checkButtons();
+
+        //Contrrol Debug Logging and Delays
         if(pressedSelect && pressed1) useLogs = true;
         if(pressedSelect && pressed3) useLogs = false;
         if(pressedSelect && pressed2) useDelay = true;        
         if(pressedSelect && pressed4) useDelay = false;
 
+        //Control Vehicle Lights
         if((pressedR2 && pressedL2)
         || (pressedR1 && pressedL1))
         {  
@@ -230,6 +238,62 @@ void loop()
             
             light(l); 
         }
+
+        //Control Autopilot Mode:)
+        if((pressedStart && pressedU)
+        || (pressedStart && pressedL)
+        || (pressedStart && pressedR)
+        || (pressedStart && pressedD)
+        || (pressedStart && pressedSelect)) 
+        {
+            //Turn On Pilot by START+LEFT/RIGHT/UP/DOWN
+            usePilot = !pressedSelect;
+
+            static bool front = true;
+            static uint8_t a = 0x7F, b = 0x7F;
+            if(pressedD) 
+            {
+                front = false;
+            }
+            if(pressedU) 
+            {
+                front = true;
+            }
+            if(pressedL) 
+            {
+                a = front ? 0xA0 : 0x40;
+                b = 0x00;
+            }
+            if(pressedR) 
+            {
+                a = front ? 0xA0 : 0x40;
+                b = 0xFF;
+            }
+            if(pressedSelect)
+            {
+                a = 0x7F;
+                b = 0x7F;
+            }
+
+            if(useLogs) 
+            {
+                String m = "Autopilot is ";
+                m += (usePilot ? "ON" : "OFF");
+                if(usePilot) 
+                {
+                    m += " (";
+                    m += String(a, HEX);
+                    m += ",";
+                    m += String(b, HEX);
+                    m += ")";
+                }
+
+                _log->println(m);
+            }
+
+            DriveMotorP(a, b);
+            if(useDelay) delay(DEBUG_DELAY);
+        } 
     }
 
     //checkBlocks();
@@ -241,6 +305,11 @@ void checkButtons()
     
     pressedStart = ((b4 & 0x0B) == 0x0B);
     pressedSelect = ((b4 & 0x07) == 0x07);    
+    
+    pressedU = ((b4 & 0x10) == 0x10);
+    pressedL = ((b4 & 0x20) == 0x20);
+    pressedR = ((b4 & 0x40) == 0x40);
+    pressedD = ((b4 & 0x80) == 0x80);
     
     pressed1 = ((b3 & 0x01) == 0x01);
     pressed2 = ((b3 & 0x04) == 0x04);
@@ -276,6 +345,10 @@ void checkButtons()
         if(pressed2) m += ("2 ");
         if(pressed3) m += ("3 ");
         if(pressed4) m += ("4 ");
+        if(pressedU) m += ("UP ");
+        if(pressedL) m += ("LEFT ");
+        if(pressedR) m += ("RIGHT ");
+        if(pressedD) m += ("DOWN ");
         m += (" ]");
       
   
