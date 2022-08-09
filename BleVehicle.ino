@@ -23,6 +23,7 @@ int L2 = 6;    //Rare Light Control
 Stream* _pad;
 Stream* _log;
 
+// General State Parts
 bool useLogs       = false;
 bool useDelay      = false;
 bool usePilot      = false;
@@ -44,8 +45,7 @@ bool pressedR1     = false;
 bool pressedR2     = false;
 bool pressedStart  = false;
 bool pressedSelect = false;
-
-
+ 
 // Joystick Message Retrieving Parts
 bool newData       = false;
 uint8_t numReceived = 0;
