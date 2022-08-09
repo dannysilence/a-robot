@@ -2,10 +2,10 @@
 SoftwareSerial Serial1(2, 3);
 
 #define BLOCK_FROM           0xFF
-#define DEBUG_DELAY          0xFF  
+#define DEBUG_DELAY          0x7F  
 #define VEHICLE_CAR          0x01
 #define VEHICLE_TANK         0x02
-#define VEHICLE_LIGHT_STEP   0x08
+#define VEHICLE_LIGHT_STEP   0x40c
 #define JOYSTICK_DATA_LENGTH 0x20
 #define JOYSTICK_DATA_START  0xAA
 #define JOYSTICK_DATA_END    0xBB
@@ -55,8 +55,7 @@ uint8_t receivedBytes[JOYSTICK_DATA_LENGTH];
 // Vehicle Speed/State Parts
 uint8_t v1 = 0x7F, v2 = 0x7F;
 uint8_t _b3 = 0x00, _b4 = 0x00, b3 = 0x00, b4 = 0x00;
-bool _l0 = false;
-uint8_t _l1 = 0x7F;
+uint8_t _l0 = 0x00;
 uint16_t rangeFront = 0, rangeRare = 0;
 
 
@@ -131,31 +130,31 @@ void DriveMotorP(byte m1p, byte m2p)
   }
 }
 
-void light(bool enabled, uint8_t level)
+void light(uint8_t level)
 {
     if(useLogs) 
     {        
         String m = "Light: ";
+        m += _l0 > 0   ? "ON" : "OFF";
+        m += "->";
+        m += level > 0 ? "ON" : "OFF";
+        m += ", level: ";
         m += String(level, HEX);
         
         _log->println(m);
-
         if(useDelay) delay(DEBUG_DELAY);
     }
+   
 
-    byte x = level == 0 || enabled == false ? HIGH : LOW;
+    byte x = level == 0 ? HIGH : LOW;
     
     digitalWrite(L1, x);
     digitalWrite(L2, x);
-    if(enabled)
-    {
-        delay(10);
-        analogWrite(L1, level);
-        analogWrite(L2, level);
-    }
+    delay(10);
+    analogWrite(L1, level);
+    analogWrite(L2, level);
 
-    _l1 = level;
-    _l0 = enabled;
+    _l0 = level;
 }
 
 const char * vehicleType()
@@ -223,19 +222,16 @@ void loop()
         if(pressedSelect && pressed4) useDelay = false;
 
         //Control Vehicle Lights
-        if((pressedL1 && pressedL2)
-        || (pressedL1 && !pressedL2)
-        || (!pressedL1 && pressedL2))
+        if(pressedL1 || pressedL2)
         {  
-            bool l0 = (pressedL1 && pressedL2) ? !_l0 : _l0;
-            int16_t l1 = _l1;
-            l1 = (pressedL1) ? _l1 + VEHICLE_LIGHT_STEP : l1;  
-            l1 = (pressedL2) ? _l1 - VEHICLE_LIGHT_STEP : l1;  
+            int16_t l0 = _l0;
+            l0 = (pressedL1) ? _l0 + VEHICLE_LIGHT_STEP : l0;  
+            l0 = (pressedL2) ? _l0 - VEHICLE_LIGHT_STEP : l0;  
             
-            if(l1 < 0) l1 = 0; else
-            if(l1 > 0xFF) l1 = 0xFF;
+            if(l0 < 0) l0 = 0; else
+            if(l0 > 0xFF) l0 = 0xFF;
             
-            light(l0, l1); 
+            light(l0); 
         }
 
         //Control Autopilot Mode:)
