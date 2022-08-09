@@ -43,11 +43,11 @@ bool pressedR2 = false;
 bool pressedSelect = false;
 bool pressedStart = false;
 
+bool newData = false;
+
 const uint8_t numBytes = 0x20;
 uint8_t numReceived = 0;
 uint8_t receivedBytes[numBytes];
-
-bool newData = false;
 
 uint8_t v1 = 0x7F, v2 = 0x7F;
 uint8_t /* b1 = 0x00, b2 = 0x00, _b1 = 0x00, _b2 = 0x00,  */ b3 = 0x00, b4 = 0x00, _b3 = 0x00, _b4 = 0x00, _l0 = 0x00;
@@ -107,14 +107,9 @@ void DriveMotorP(byte m1p, byte m2p)
     if(m2p != 0x7F)
     {
         int m3p = m2p > 0x7F ? 0xFF - m2p - 1 : 0xFF - m2p + 1;
-        if(m3p <= 0)
-        {
-          m3p = 0;
-        } else
-        if(m3p >= 0xFF)
-        {
-          m3p = 0xFF;
-        }
+        m3p = m3p <= 0x00 ? 0x00 : m3p;  
+        m3p = m3p >= 0xFF ? 0xFF : m3p;  
+        
         digitalWrite(E2, HIGH);
         analogWrite(M2, (m3p));
         
