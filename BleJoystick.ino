@@ -2,19 +2,18 @@
 #include <Arduino.h>
 
 #define DELAY 100
-#define PAYLOAD_LENGTH 10
-#define PAYLOAD_START 0xAA
-#define PAYLOAD_END 0xBB
+#define JOYSTICK_DATA_LENGTH 0x0A
+#define JOYSTICK_DATA_START  0xAA
+#define JOYSTICK_DATA_END    0xBB
 
 #define virbrationMotorPin 2
 
 volatile int buttonState[17];
 volatile int joystick[6] = {0, 0, 500, 500, 500, 500};
 bool upd0 = false, f = false;
-unsigned long number = 0, timer = 0;
+unsigned long timer = 0;
 int k = 0;
-byte buf[PAYLOAD_LENGTH+2];
-
+byte buf[JOYSTICK_DATA_LENGTH+2];
 
 void vibr(uint16_t ms)
 {
@@ -31,14 +30,6 @@ void setup()
   delay(500);
 
   InitIO();
-  
-//  if(Serial)
-//  {
-//    if(Serial.availableForWrite())
-//    {
-//      Serial.println("setup completed");
-//    }
-//  }
 }
 
 void InitIO() {
@@ -68,7 +59,7 @@ void loop()
       {
         if(k++ < 5)
         {
-          Serial1.write(buf, PAYLOAD_LENGTH+2);  
+          Serial1.write(buf, JOYSTICK_DATA_LENGTH+2);  
           //Serial1.flush();
           delay(30);
         }
@@ -128,14 +119,13 @@ bool DataUpdate()
   return f;
 }
 
-void writeData(byte x[PAYLOAD_LENGTH])
+void writeData(byte x[JOYSTICK_DATA_LENGTH])
 {
+  static uint8_t id = 0;
   String str = "";
   int k = 0;
   
-  x[k++] = PAYLOAD_START;
-//  x[k++] = (byte)(((number & 0xFF00) >> 8) & 0xFF);
-//  x[k++] = (byte)((number & 0xFF) & 0xFF);
+  x[k++] = JOYSTICK_DATA_START;
 
   unsigned long Btns = 0;
   for (int i = 2; i < 6; i++)
@@ -158,55 +148,32 @@ void writeData(byte x[PAYLOAD_LENGTH])
     }
   }
 
-  x[k++] = (byte)(((Btns & 0xFF000000) >> 24) & 0xFF);
+  x[k++] = id++;
+  //x[k++] = (byte)(((Btns & 0xFF000000) >> 24) & 0xFF);
   x[k++] = (byte)(((Btns & 0xFF0000) >> 16) & 0xFF);
   x[k++] = (byte)(((Btns & 0xFF00) >> 8) & 0xFF);
   x[k++] = (byte)(((Btns & 0xFF)) & 0xFF);
-  x[k++] = PAYLOAD_END;
+  x[k++] = JOYSTICK_DATA_END;
 }
 
 
 void printData()
 {
-  //byte data[PAYLOAD_LENGTH+2];
-  //String dout = "";
-
   writeData(buf);
 
-  for (int i = 0; i < PAYLOAD_LENGTH; i++)
+  for (int i = 0; i < JOYSTICK_DATA_LENGTH; i++)
   {
     byte x = buf[i]; 
-    if(i > 0 && i < PAYLOAD_LENGTH - 1 && x == PAYLOAD_START)
+    if(i > 0 && i < JOYSTICK_DATA_LENGTH - 1 && x == JOYSTICK_DATA_START)
     {
-      x = PAYLOAD_START+1;
+      x = JOYSTICK_DATA_START+1;
     } else
-    if(i > 0 && i < PAYLOAD_LENGTH - 1 && x == PAYLOAD_END)
+    if(i > 0 && i < JOYSTICK_DATA_LENGTH - 1 && x == JOYSTICK_DATA_END)
     {
-      x = PAYLOAD_END+1;
+      x = JOYSTICK_DATA_END+1;
     }
-    
-    //String m = String(x, HEX);
-    //m.toUpperCase();
-    //dout.concat(m);
   }
-  buf[PAYLOAD_LENGTH] = 0x0D;
-  buf[PAYLOAD_LENGTH+1] = 0x0A;
-  //dout.concat("\n\r");
-
-  Serial1.write(buf, PAYLOAD_LENGTH+2);  
-  //Serial1.flush();
-  
-//  if(Serial)
-//  {
-//    if(Serial.availableForWrite())
-//    {
-//      Serial.print(dout);
-//    }
-//  }  
+  buf[JOYSTICK_DATA_LENGTH] = 0x0D;
+  buf[JOYSTICK_DATA_LENGTH+1] = 0x0A;
+  Serial1.write(buf, JOYSTICK_DATA_LENGTH+2);  
 }
-
-//
-//void serialEvent1() {
-//  //statements
-//  Serial.println("Serial1 event!");
-//}
