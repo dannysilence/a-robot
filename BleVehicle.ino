@@ -47,7 +47,7 @@ bool pressedR2     = false;
 bool pressedStart  = false;
 bool pressedSelect = false;
  
-// Joystick Message Retrieving Parts
+// Joystick Message Retrieving Parts   
 bool newData       = false;
 uint8_t numReceived = 0;
 uint8_t receivedBytes[JOYSTICK_DATA_LENGTH];
@@ -57,6 +57,8 @@ uint8_t v1 = 0x7F, v2 = 0x7F;
 uint8_t _b3 = 0x00, _b4 = 0x00, b3 = 0x00, b4 = 0x00;
 uint8_t _l0 = 0x00;
 uint16_t rangeFront = 0, rangeRare = 0;
+
+
 
 
 void SetServoPos(byte a, byte b)
@@ -198,11 +200,18 @@ void loop()
     
     if(showNewData())
     {
+        static uint8_t pid = 0, _pid = 0;
+      
         v1 = receivedBytes[2];
         v2 = receivedBytes[1];
 
         b3 = receivedBytes[6];
         b4 = receivedBytes[7];
+
+        pid = receivedBytes[4]; 
+
+        if(pid == _pid)return;   
+        _pid = pid;
 
         if((v1 < 0x7F && blockRare == false)
         || (v1 > 0x7F && blockFront == false))
@@ -234,61 +243,61 @@ void loop()
             light(l0); 
         }
 
-        //Control Autopilot Mode:)
-        if((pressedStart && pressedU)
-        || (pressedStart && pressedL)
-        || (pressedStart && pressedR)
-        || (pressedStart && pressedD)
-        || (pressedStart && pressedSelect)) 
-        {
-            //Turn On Pilot by START+LEFT/RIGHT/UP/DOWN
-            usePilot = !pressedSelect;
-
-            static bool front = true;
-            static uint8_t a = 0x7F, b = 0x7F;
-            if(pressedD) 
-            {
-                front = false;
-            }
-            if(pressedU) 
-            {
-                front = true;
-            }
-            if(pressedL) 
-            {
-                a = front ? 0xA0 : 0x40;
-                b = 0x00;
-            }
-            if(pressedR) 
-            {
-                a = front ? 0xA0 : 0x40;
-                b = 0xFF;
-            }
-            if(pressedSelect)
-            {
-                a = 0x7F;
-                b = 0x7F;
-            }
-
-            if(useLogs) 
-            {
-                String m = "Autopilot is ";
-                m += (usePilot ? "ON" : "OFF");
-                if(usePilot) 
-                {
-                    m += " (";
-                    m += String(a, HEX);
-                    m += ",";
-                    m += String(b, HEX);
-                    m += ")";
-                }
-
-                _log->println(m);
-            }
-
-            DriveMotorP(a, b);
-            if(useDelay) delay(DEBUG_DELAY);
-        } 
+//        //Control Autopilot Mode:)
+//        if((pressedStart && pressedU)
+//        || (pressedStart && pressedL)
+//        || (pressedStart && pressedR)
+//        || (pressedStart && pressedD)
+//        || (pressedStart && pressedSelect)) 
+//        {
+//            //Turn On Pilot by START+LEFT/RIGHT/UP/DOWN
+//            usePilot = !pressedSelect;
+//
+//            static bool front = true;
+//            static uint8_t a = 0x7F, b = 0x7F;
+//            if(pressedD) 
+//            {
+//                front = false;
+//            }
+//            if(pressedU) 
+//            {
+//                front = true;
+//            }
+//            if(pressedL) 
+//            {
+//                a = front ? 0xA0 : 0x40;
+//                b = 0x00;
+//            }
+//            if(pressedR) 
+//            {
+//                a = front ? 0xA0 : 0x40;
+//                b = 0xFF;
+//            }
+//            if(pressedSelect)
+//            {
+//                a = 0x7F;
+//                b = 0x7F;
+//            }
+//
+//            if(useLogs) 
+//            {
+//                String m = "Autopilot is ";
+//                m += (usePilot ? "ON" : "OFF");
+//                if(usePilot) 
+//                {
+//                    m += " (";
+//                    m += String(a, HEX);
+//                    m += ",";
+//                    m += String(b, HEX);
+//                    m += ")";
+//                }
+//
+//                _log->println(m);
+//            }
+//
+//            DriveMotorP(a, b);
+//            if(useDelay) delay(DEBUG_DELAY);
+//        } 
     }
 
     //checkBlocks();
