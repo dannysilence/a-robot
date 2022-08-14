@@ -16,7 +16,7 @@ Here there is an Arduino based code for Gamepad (BleJoystick) and RoboCar (later
 
 You may use other RC car (in fact we need wheels, motors and body only - all the controls are handled by Arduino, so  if you have broken RC car - it may work for this case ideally)
 
-You may also not buy Arduino Gamepad (or buy already BLE version) - instead of any Gamepad there is an app (based on DFRobot BlunoBasicDemo) to handle same kind of actions as from Gamepad - follow [Android Gamepad App](https://github.com/dannysilence/BlunoBasicDemo) and build the app (or get Release) for yourself.
+You may also not buy Arduino Gamepad (or buy already BLE version) - instead of any Gamepad there is an app (based on DFRobot BlunoBasicDemo) to handle same kind of actions as from Gamepad - follow [Android Gamepad App](https://github.com/dannysilence/BlunoBasicDemo) and build the app (or get Release APK from [here](https://github.com/dannysilence/BlunoBasicDemo/releases/tag/1.0)) for yourself.
 
 
 
