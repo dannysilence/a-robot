@@ -46,6 +46,8 @@ bool pressedR1     = false;
 bool pressedR2     = false;
 bool pressedStart  = false;
 bool pressedSelect = false;
+
+uint8_t driveMode = 1;          // Drive mode 1 - vehicle drives front/back by left joystick, left/right - by right, drive mode 2 - all directions handled by left joystick, drive mode 3 - all directions handled by right joystick
  
 // Joystick Message Retrieving Parts   
 bool newData       = false;
@@ -193,6 +195,36 @@ void setup()
     _log->println(m);
 }
 
+uint8_t getXMove(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
+{
+  switch (driveMode)
+  {
+    case 1:
+      return b;
+    case 2:
+      return d;
+    case 3:
+      return b;
+    default:
+      return b;
+  }
+}
+
+uint8_t getYMove(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
+{
+  switch (driveMode)
+  {
+    case 1:
+      return c;
+    case 2:
+      return c;
+    case 3:
+      return a;
+    default:
+      return c;
+  }
+}
+
 void loop() 
 { 
     receiveBytes(_pad);
@@ -201,9 +233,16 @@ void loop()
     if(showNewData())
     {
         static uint8_t pid = 0, _pid = 0;
-      
-        v1 = receivedBytes[2];
-        v2 = receivedBytes[1];
+        
+        uint8_t a = receivedBytes[0];
+        uint8_t b = receivedBytes[1];
+        uint8_t c = receivedBytes[2];
+        uint8_t d = receivedBytes[3];
+        
+        v1 = getYMove(a, b, c, d);
+        v2 = getXMove(a, b, c, d);
+//        v1 = receivedBytes[2];
+//        v2 = receivedBytes[1];
 
         b3 = receivedBytes[6];
         b4 = receivedBytes[7];
@@ -224,11 +263,17 @@ void loop()
 
         checkButtons();
 
+        //Control Drive Mode
+        if(pressedSelect && pressed1) driveMode = 1;
+        if(pressedSelect && pressed2) driveMode = 2;
+        if(pressedSelect && pressed3) driveMode = 3;        
+        //if(pressedSelect && pressed4) useDelay = false;
+
         //Control Debug Logging and Delays
-        if(pressedSelect && pressed1) useLogs = true;
-        if(pressedSelect && pressed3) useLogs = false;
-        if(pressedSelect && pressed2) useDelay = true;        
-        if(pressedSelect && pressed4) useDelay = false;
+        if(pressedR1 && pressed1) useLogs = true;
+        if(pressedR2 && pressed1) useLogs = false;
+        if(pressedR1 && pressed2) useDelay = true;        
+        if(pressedR2 && pressed2) useDelay = false;
 
         //Control Vehicle Lights
         if(pressedL1 || pressedL2)
