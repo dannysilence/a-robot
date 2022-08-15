@@ -57,7 +57,7 @@ void loop()
         printData();
       } else 
       {
-        if(k++ < 5)
+        if(k++ < 3)
         {
           Serial1.write(buf, JOYSTICK_DATA_LENGTH+2);  
           //Serial1.flush();
