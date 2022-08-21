@@ -93,7 +93,9 @@ void DriveMotorP(byte m1p, byte m2p)
   */
   if(useLogs) 
   {        
-    String m = "DriveMotorP: ";
+    String m = "DriveMotorP[";
+    m += String(driveMode);
+    m += "]: ";
     m += String(m1p, HEX);
     m += ",";
     m += String(m2p,HEX);
@@ -122,6 +124,15 @@ void DriveMotorP(byte m1p, byte m2p)
         
         digitalWrite(E2, HIGH);
         analogWrite(M2, (m3p));
+
+        String n = "DroveMotorP[";
+        n += String(driveMode);
+        n += "]: ";
+        n += String(m1p, HEX);
+        n += ",";
+        n += String(m3p,HEX);
+    
+        _log->println(n);
         
     } else
     {
@@ -228,7 +239,7 @@ uint8_t getYMove(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
 void loop() 
 { 
     receiveBytes(_pad);
-    checkBlocks();
+    //checkBlocks();
     
     if(showNewData())
     {
