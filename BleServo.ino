@@ -65,7 +65,7 @@ uint8_t _l0 = 0x00;
 uint16_t rangeFront = 0, rangeRare = 0;
 
 
-
+int _pos1 = 0, _pos2 = 0;
 
 void SetServoPos(byte a, byte b)
 {
@@ -200,17 +200,23 @@ void setup()
     pinMode(A6, INPUT);
     pinMode(A7, INPUT);
 
+    pinMode(A8, INPUT);
+    pinMode(A9, INPUT);
+
     _pad = &(Serial);
     _log = &(Serial1);
 
-    servo1.attach(8);
-    servo2.attach(9);
+    servo1.attach(A8);
+    servo2.attach(A9);
 
     String m = "Robo";
     m += vehicleType();
     m += " is ready!";
         
     _log->println(m);
+
+//    moveServo1(0);
+//    moveServo2(0);
 }
 
 uint8_t getXMove(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
@@ -243,44 +249,72 @@ uint8_t getYMove(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
   }
 }
 
-void moveServo1()
+void moveServo1(int p)
 {
+    int pos = _pos1+p;//p == 0 ? 0 : _pos1 + p;
+    _pos1 = pos;
+    if(pos < 0) _pos1 = 0;
+    if(pos > 180) _pos1 = 180;
+   
+    servo1.write(_pos1);
+    delay(15);
+    
     String m = "Servo1";
     m += " is moving!";
+    m += String(p);
+    m += ", ";
+    m += String(_pos1);
         
     if(useLogs) _log->println(m);
   
-  for (int pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
-    // in steps of 1 degree
-    servo1.write(pos);              // tell servo to go to position in variable 'pos'
-    delay(15);                       // waits 15 ms for the servo to reach the position
-  }
-  for (int pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
-    servo1.write(pos);              // tell servo to go to position in variable 'pos'
-    delay(15);                       // waits 15 ms for the servo to reach the position
-  }
+//    String m = "Servo1";
+//    m += " is moving!";
+//        
+//    if(useLogs) _log->println(m);
+//  
+//  for (int pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
+//    // in steps of 1 degree
+//    servo1.write(pos);              // tell servo to go to position in variable 'pos'
+//    delay(15);                       // waits 15 ms for the servo to reach the position
+//  }
+//  for (int pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
+//    servo1.write(pos);              // tell servo to go to position in variable 'pos'
+//    delay(15);                       // waits 15 ms for the servo to reach the position
+//  }
 }
 
-void moveServo2()
+void moveServo2(int p)
 {
+    int pos = _pos2+p;//p == 0 ? 0 : _pos2 + p;
+    _pos2 = pos;
+    if(pos < 0) _pos2 = 0;
+    if(pos > 180) _pos2 = 180;
+    
+    servo2.write(_pos2);
+    delay(15);
+    
     String m = "Servo2";
     m += " is moving!";
+    m += String(p);
+    m += ", ";
+    m += String(_pos2);
         
     if(useLogs) _log->println(m);
   
-  for (int pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
-    // in steps of 1 degree
-    servo2.write(pos);              // tell servo to go to position in variable 'pos'
-    delay(15);                       // waits 15 ms for the servo to reach the position
-  }
-  for (int pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
-    servo2.write(pos);              // tell servo to go to position in variable 'pos'
-    delay(15);                       // waits 15 ms for the servo to reach the position
-  }
+//  for (int pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
+//    // in steps of 1 degree
+//    servo2.write(pos);              // tell servo to go to position in variable 'pos'
+//    delay(15);                       // waits 15 ms for the servo to reach the position
+//  }
+//  for (int pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
+//    servo2.write(pos);              // tell servo to go to position in variable 'pos'
+//    delay(15);                       // waits 15 ms for the servo to reach the position
+//  }
 }
 
 void loop() 
 { 
+  
     receiveBytes(_pad);
     //checkBlocks();
     
@@ -302,12 +336,14 @@ void loop()
 
         if(v1 != 0x7F)
         {
-          moveServo1();
+          int p1 = v1 > 0x7F ? +5 : -5;
+          moveServo1(p1);
         }
 
         if(v2 != 0x7F)
         {
-          moveServo2();
+          int p2 = v2 > 0x7F ? +5 : -5;
+          moveServo2(p2);
         }
 
 //        v1 = receivedBytes[2];
@@ -465,43 +501,6 @@ void checkButtons()
     }
 }
 
-void checkBlocks()
-{
-    if(VEHICLE_TYPE == VEHICLE_CAR)
-    {
-      uint16_t d1 = getRangeFront();
-      uint16_t d2 = getRangeRare();
-
-      if(useLogs) 
-      {  
-          String m = "Distances: ";
-          m += String(d1, HEX);
-          m += ",";
-          m += String(d2, HEX);
-          m += " (";
-          m += (blockFront ? "blocked"  : "free");
-          m += ",";
-          m += (blockRare ? "blocked"  : "free");
-          m += ")";
-          
-          _log->println(m);
-
-          if(useDelay) delay(DEBUG_DELAY);
-      }
-    
-      if((v1 < 0x7F && blockRare)
-      || (v1 > 0x7F && blockFront))  
-      {
-          DriveMotorP(0x7F, v2);
-      }
-    } else
-    if(VEHICLE_TYPE == VEHICLE_TANK)
-    {
-      blockRare = false;
-      blockFront = false;
-    }
-}
-
 void receiveBytes(Stream* stream) 
 {
     static bool recvInProgress = false;
@@ -561,30 +560,4 @@ bool showNewData()
     }
 
     return false;
-}
-
-uint16_t getRangeFront () 
-{
-    uint16_t value = analogRead (A6);
-
-    if (value < 10) value = 10;
-    uint16_t range = ((67870.0 / (value - 3.0)) - 40.0);
-
-    rangeFront = range;
-    blockFront = rangeFront <= BLOCK_FROM;
-   
-    return range;
-}
-
-uint16_t getRangeRare () 
-{
-    uint16_t value = analogRead (A7);
-    
-    if (value < 10) value = 10;
-    uint16_t range = ((67870.0 / (value - 3.0)) - 40.0);
-
-    rangeRare = range;
-    blockRare= rangeRare<= BLOCK_FROM;
-    
-    return range;
 }
