@@ -212,7 +212,9 @@ void setup()
     String m = "Robo";
     m += vehicleType();
     m += " is ready!";
-        
+    _pos1 = servo1.read();
+    _pos2 = servo2.read();
+            
     _log->println(m);
 
 //    moveServo1(0);
@@ -251,18 +253,18 @@ uint8_t getYMove(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
 
 void moveServo1(int p)
 {
-    int pos = _pos1+p;//p == 0 ? 0 : _pos1 + p;
-    _pos1 = pos;
-    if(pos < 0) _pos1 = 0;
-    if(pos > 180) _pos1 = 180;
+    int pos = servo1.read();//p == 0 ? 0 : _pos1 + p;
+    _pos1 = pos+p;
+    if(_pos1 < 0) _pos1 = 0;
+    if(_pos1 > 180) _pos1 = 180;
    
     servo1.write(_pos1);
     delay(15);
     
     String m = "Servo1";
     m += " is moving!";
-    m += String(p);
-    m += ", ";
+    m += String(pos);
+    m += " -> ";
     m += String(_pos1);
         
     if(useLogs) _log->println(m);
@@ -285,18 +287,18 @@ void moveServo1(int p)
 
 void moveServo2(int p)
 {
-    int pos = _pos2+p;//p == 0 ? 0 : _pos2 + p;
-    _pos2 = pos;
-    if(pos < 0) _pos2 = 0;
-    if(pos > 180) _pos2 = 180;
+    int pos = servo2.read();//p == 0 ? 0 : _pos2 + p;
+    _pos2 = pos+p;
+    if(_pos2 < 0) _pos2 = 0;
+    if(_pos2 > 180) _pos2 = 180;
     
     servo2.write(_pos2);
     delay(15);
     
     String m = "Servo2";
     m += " is moving!";
-    m += String(p);
-    m += ", ";
+    m += String(pos);
+    m += " -> ";
     m += String(_pos2);
         
     if(useLogs) _log->println(m);
@@ -331,8 +333,8 @@ void loop()
         uint8_t c = receivedBytes[2];
         uint8_t d = receivedBytes[3];
         
-        v1 = getYMove(a, b, c, d);
-        v2 = getXMove(a, b, c, d);
+        v1 = b;//getYMove(a, b, c, d);
+        v2 = d;//getXMove(a, b, c, d);
 
         if(v1 != 0x7F)
         {
