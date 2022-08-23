@@ -1,4 +1,5 @@
-#include "common.h"
+#include <stdint.h>
+#include <Arduino.h>
 
 #define virbrationMotorPin 2
 
