@@ -1,10 +1,14 @@
-#include "common.h"
+//#include <SoftwareSerial.h>
+//SoftwareSerial Serial1(2, 3);
 
 #define BLOCK_FROM           0xFF
 #define DEBUG_DELAY          0x7F  
 #define VEHICLE_CAR          0x01
 #define VEHICLE_TANK         0x02
 #define VEHICLE_LIGHT_STEP   0x40
+#define JOYSTICK_DATA_LENGTH 0x20
+#define JOYSTICK_DATA_START  0xAA
+#define JOYSTICK_DATA_END    0xBB
 
 const byte VEHICLE_TYPE = VEHICLE_CAR;    // car
 //const byte VEHICLE_TYPE = VEHICLE_TANK;    // tank
@@ -18,12 +22,12 @@ int L1 = 9;    //Front Light Control
 int L2 = 10;    //Rare Light Control
 
 Stream* _pad;
-//Stream* _log;
-Logger* _log;
+Stream* _log;
 
 // General State Parts
-bool useLogs       = false;
+bool useLogs       = true;
 bool useDelay      = false;
+bool usePilot      = false;
 bool blockRare     = false;
 bool blockFront    = false;
 
@@ -83,11 +87,23 @@ void DriveMotorP(byte m1p, byte m2p)
 
     if(VEHICLE_TYPE == VEHICLE_TANK)
     {
-      m1p => front-rare level value (Vl = L*(1-sin(a)) )
-      m2p => left-right level value (Vr = L*(1-cos(a)) )
+      m1p => (left) based on A and L (angel and length of joystick line)
+      m2p => (right) based on A and L (angel and length of joystick line)
     }
   */
-  _log->write("DriveMotorP[", String(driveMode), "]: ", String(m1p, HEX), ",", String(m2p, HEX)); 
+  if(useLogs) 
+  {        
+    String m = "DriveMotorP[";
+    m += String(driveMode);
+    m += "]: ";
+    m += String(m1p, HEX);
+    m += ",";
+    m += String(m2p,HEX);
+    
+    _log->println(m);
+
+    if(useDelay) delay(1000);
+  }
     
   if(VEHICLE_TYPE == VEHICLE_CAR)
   {
@@ -107,7 +123,17 @@ void DriveMotorP(byte m1p, byte m2p)
         m3p = m3p >= 0xFF ? 0xFF : m3p;  
         
         digitalWrite(E2, HIGH);
-        analogWrite(M2, (m3p));        
+        analogWrite(M2, (m3p));
+
+        String n = "DroveMotorP[";
+        n += String(driveMode);
+        n += "]: ";
+        n += String(m1p, HEX);
+        n += ",";
+        n += String(m3p,HEX);
+    
+        _log->println(n);
+        
     } else
     {
         digitalWrite(E2, LOW);
@@ -121,8 +147,19 @@ void DriveMotorP(byte m1p, byte m2p)
 
 void light(uint8_t level)
 {
-    _log->write("Light: ", _l0 > 0 ? "ON" : "OFF", " -> ", level > 0 ? "ON" : "OFF", ", level: ", String(level, HEX));
-    if(useDelay) delay(DEBUG_DELAY);  
+    if(useLogs) 
+    {        
+        String m = "Light: ";
+        m += _l0 > 0   ? "ON" : "OFF";
+        m += "->";
+        m += level > 0 ? "ON" : "OFF";
+        m += ", level: ";
+        m += String(level, HEX);
+        
+        _log->println(m);
+        if(useDelay) delay(DEBUG_DELAY);
+    }
+   
 
     byte x = level == 0 ? HIGH : LOW;
     
@@ -160,9 +197,13 @@ void setup()
     pinMode(A7, INPUT);
 
     _pad = &(Serial);
-    _log = &Logger(&Serial1, useLogs);
+    _log = &(Serial1);
 
-    _log->write("Robo", vehicleType(), " is ready!");
+    String m = "Robo";
+    m += vehicleType();
+    m += " is ready!";
+        
+    _log->println(m);
 }
 
 uint8_t getXMove(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
@@ -284,9 +325,12 @@ void checkButtons()
     _b3 = b3;
     _b4 = b4;
 
-    if(_log->isEnabled()) 
+    if(useLogs) 
     { 
-        String m = "";
+        String m = "Buttons: ";
+        m += String(b3, HEX);
+        m += String(b4, HEX);
+        m += " [";
         
         if(pressedStart)  m += ("START ");
         if(pressedSelect) m += ("SELECT ");
@@ -302,8 +346,9 @@ void checkButtons()
         if(pressedL)      m += ("LEFT ");
         if(pressedR)      m += ("RIGHT ");
         if(pressedD)      m += ("DOWN ");
-        
-        _log->write("Buttons: ", String(b3, HEX), String(b4, HEX), " [", m,  "]");
+        m += (" ]");
+      
+        _log->println(m);
         if(useDelay) delay(DEBUG_DELAY);
     }
 }
@@ -315,9 +360,22 @@ void checkBlocks()
       uint16_t d1 = getRangeFront();
       uint16_t d2 = getRangeRare();
 
-      _log->write("Distances: ", String(d1, HEX), ",", String(d2, HEX), " (", (blockFront ? "blocked"  : "free"), ",", (blockRare ? "blocked"  : "free"), ")");
+      if(useLogs) 
+      {  
+          String m = "Distances: ";
+          m += String(d1, HEX);
+          m += ",";
+          m += String(d2, HEX);
+          m += " (";
+          m += (blockFront ? "blocked"  : "free");
+          m += ",";
+          m += (blockRare ? "blocked"  : "free");
+          m += ")";
+          
+          _log->println(m);
 
-      if(useDelay) delay(DEBUG_DELAY);
+          if(useDelay) delay(DEBUG_DELAY);
+      }
     
       if((v1 < 0x7F && blockRare)
       || (v1 > 0x7F && blockFront))  
@@ -348,9 +406,9 @@ void receiveBytes(Stream* stream)
             if (rb != JOYSTICK_DATA_END) 
             {
                 receivedBytes[ndx] = rb;
-                if (ndx++ >= JOYSTICK_DATA_LENGTH*2) 
+                if (ndx++ >= JOYSTICK_DATA_LENGTH) 
                 {
-                    ndx = JOYSTICK_DATA_LENGTH*2 - 1;
+                    ndx = JOYSTICK_DATA_LENGTH - 1;
                 }
             }
             else 
@@ -374,15 +432,15 @@ bool showNewData()
 {
     if (newData == true) 
     {
-        if(_log->isEnabled()) 
+        if(useLogs) 
         {  
-            String m = "";
+            String m = "This came in: ";
             for (byte n = 0; n < numReceived; n++) 
             {
                 m += String(receivedBytes[n], HEX);
                 m += " ";
             }
-            _log->write("This came in: ", m);
+            _log->println(m);
         }
         
         newData = false;
