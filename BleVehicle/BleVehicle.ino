@@ -1,5 +1,12 @@
-//#include <SoftwareSerial.h>
-//SoftwareSerial Serial1(2, 3);
+#include <stdint.h>
+#include <Arduino.h>
+
+#ifdef ARDUINO_AVR_UNO
+
+#include <SoftwareSerial.h>
+SoftwareSerial Serial1(2, 3);
+
+#endif
 
 #define BLOCK_FROM           0xFF
 #define DEBUG_DELAY          0x7F  
