@@ -87,19 +87,7 @@ void DriveMotorP(byte m1p, byte m2p)
       m2p => left-right level value (Vr = L*(1-cos(a)) )
     }
   */
-  if(useLogs) 
-  {        
-    String m = "DriveMotorP[";
-    m += String(driveMode);
-    m += "]: ";
-    m += String(m1p, HEX);
-    m += ",";
-    m += String(m2p,HEX);
-    
-    _log->println(m);
-
-    if(useDelay) delay(1000);
-  }
+  _log->write("DriveMotorP[", String(driveMode), "]: ", String(m1p, HEX), ",", String(m2p, HEX)); 
     
   if(VEHICLE_TYPE == VEHICLE_CAR)
   {
