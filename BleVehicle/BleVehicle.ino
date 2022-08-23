@@ -100,7 +100,7 @@ void DriveMotorP(byte m1p, byte m2p)
   */
   if(useLogs) 
   {        
-    String m = "DriveMotorP[";
+    String m = "DriveMotor[";
     m += String(driveMode);
     m += "]: ";
     m += String(m1p, HEX);
