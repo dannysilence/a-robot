@@ -2,10 +2,8 @@
 #include <Arduino.h>
 
 #ifdef ARDUINO_AVR_UNO
-
 #include <SoftwareSerial.h>
 SoftwareSerial Serial1(2, 3);
-
 #endif
 
 #define DEBUG_DELAY          0x7F  
@@ -57,24 +55,21 @@ uint8_t v1 = 0x7F, v2 = 0x7F;
 uint8_t _b3 = 0x00, _b4 = 0x00, b3 = 0x00, b4 = 0x00;
 uint8_t _l0 = 0x00;
 
-
 void DriveMotorP(byte m1p, byte m2p)
 {   
-  if(useLogs) 
-  {        
-    String m = "DriveMotor[";
-    m += String(driveMode);
-    m += "]: ";
-    m += String(m1p, HEX);
-    m += ",";
-    m += String(m2p,HEX);
+    if(useLogs) 
+    {        
+      String m = "DriveMotor[";
+      m += String(driveMode);
+      m += "]: ";
+      m += String(m1p, HEX);
+      m += ",";
+      m += String(m2p,HEX);
     
-    _log->println(m);
-
-    if(useDelay) delay(1000);
-  }
+      _log->println(m);
+      if(useDelay) delay(1000);
+    }
     
-  
     int16_t a = m1p>=0x7F ? m1p-0x7F : 0x7F-m1p;
     int16_t b = m2p>=0x7F ? m2p-0x7F : 0x7F-m2p;
     int32_t c2 = a>b ? a*a-b*b : b*b-a*a;
@@ -137,7 +132,6 @@ void DriveMotorP(byte m1p, byte m2p)
     {
       digitalWrite(E2, LOW);
     }
-  
 }
 
 void light(uint8_t level)
@@ -155,7 +149,6 @@ void light(uint8_t level)
         if(useDelay) delay(DEBUG_DELAY);
     }
    
-
     byte x = level == 0 ? HIGH : LOW;
     
     digitalWrite(L1, x);
@@ -171,14 +164,10 @@ uint8_t getXMove(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
 {
   switch (driveMode)
   {
-    case 1:
-      return b;
-    case 2:
-      return d;
-    case 3:
-      return b;
-    default:
-      return b;
+    case 1:  return b;
+    case 2:  return d;
+    case 3:  return b;
+    default: return b;
   }
 }
 
@@ -186,17 +175,12 @@ uint8_t getYMove(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
 {
   switch (driveMode)
   {
-    case 1:
-      return c;
-    case 2:
-      return c;
-    case 3:
-      return a;
-    default:
-      return c;
+    case 1:  return c;
+    case 2:  return c;
+    case 3:  return a;
+    default: return c;
   }
 }
-
 
 void setup() 
 {
@@ -250,7 +234,6 @@ void loop()
         if(pressedSelect && pressed1) driveMode = 1;
         if(pressedSelect && pressed2) driveMode = 2;
         if(pressedSelect && pressed3) driveMode = 3;        
-        //if(pressedSelect && pressed4) useDelay = false;
 
         //Control Debug Logging and Delays
         if(pressedR1 && pressed1) useLogs = true;
@@ -353,7 +336,6 @@ void receiveBytes(Stream* stream)
                 newData = true;
             }
         }
-
         else if (rb == JOYSTICK_DATA_START) 
         {
             recvInProgress = true;
