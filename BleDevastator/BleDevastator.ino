@@ -15,7 +15,6 @@ SoftwareSerial Serial1(2, 3);
 #define JOYSTICK_DATA_START  0xAA
 #define JOYSTICK_DATA_END    0xBB
 
-
 int E1 = 4;    //PLL based M1 Speed Control
 int E2 = 7;    //PLL based M2 Speed Control
 int M1 = 5;    //PLL based M1 Direction Control
@@ -30,7 +29,6 @@ Stream* _log;
 // General State Parts
 bool useLogs       = true;
 bool useDelay      = false;
-bool usePilot      = false;
 
 // Joystick Buttons State Parts 
 bool pressed1      = false;
