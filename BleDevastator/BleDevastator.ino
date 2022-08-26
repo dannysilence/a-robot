@@ -67,12 +67,10 @@ void DriveMotorP(byte m1p, byte m2p)
     
     int16_t a = m1p>=0x7F ? m1p-0x7F : 0x7F-m1p;
     int16_t b = m2p>=0x7F ? m2p-0x7F : 0x7F-m2p;
-    int32_t c2 = a>b ? a*a-b*b : b*b-a*a;
-    int16_t c = sqrt(c2);
+    int16_t c = sqrt(a>b ? a*a-b*b : b*b-a*a);
   
-    byte x = 0x7F, y = 0x7F;
     float kX = 1, kY = 1;
-    byte dY = m2p >= 0x7F ? m2p - 0x7F : 0x7F - m2p;
+    byte x = 0x7F, y = 0x7F, dY = m2p >= 0x7F ? m2p - 0x7F : 0x7F - m2p;
   
     if(dY<=0x0F) 
     {
@@ -177,8 +175,7 @@ void setup()
     Serial.begin(115200);
     Serial1.begin(115200);
 
-    int i;
-    for(i=4;i<=7;i++) pinMode(i, OUTPUT);
+    for(int i=4;i<=7;i++) pinMode(i, OUTPUT);
 
     pinMode(L1, OUTPUT);
     pinMode(L2, OUTPUT);
