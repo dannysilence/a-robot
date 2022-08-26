@@ -59,12 +59,7 @@ void DriveMotorP(byte m1p, byte m2p)
 {   
     if(useLogs) 
     {        
-      String m = "DriveMotor[";
-      m += String(driveMode);
-      m += "]: ";
-      m += String(m1p, HEX);
-      m += ",";
-      m += String(m2p,HEX);
+      String m = "DriveMotor["; m += String(driveMode); m += "]: "; m += String(m1p, HEX); m += ","; m += String(m2p,HEX);
     
       _log->println(m);
       if(useDelay) delay(1000);
@@ -138,12 +133,7 @@ void light(uint8_t level)
 {
     if(useLogs) 
     {        
-        String m = "Light: ";
-        m += _l0 > 0   ? "ON" : "OFF";
-        m += "->";
-        m += level > 0 ? "ON" : "OFF";
-        m += ", level: ";
-        m += String(level, HEX);
+        String m = "Light: "; m += _l0 > 0   ? "ON" : "OFF"; m += "->"; m += level > 0 ? "ON" : "OFF"; m += ", level: "; m += String(level, HEX);
         
         _log->println(m);
         if(useDelay) delay(DEBUG_DELAY);
@@ -342,6 +332,7 @@ bool showNewData()
         {  
             String m = "This came in: ";
             for (byte n = 0; n < numReceived; n++) { m += String(receivedBytes[n], HEX); m += " "; }
+         
             _log->println(m);
         }
         
