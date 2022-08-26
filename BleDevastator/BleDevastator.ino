@@ -280,10 +280,7 @@ void checkButtons()
 
     if(useLogs) 
     { 
-        String m = "Buttons: ";
-        m += String(b3, HEX);
-        m += String(b4, HEX);
-        m += " [";
+        String m = "Buttons: ";  m += String(b3, HEX);  m += String(b4, HEX);  m += " [";
         
         if(pressedStart)  m += ("START ");
         if(pressedSelect) m += ("SELECT ");
@@ -322,10 +319,7 @@ void receiveBytes(Stream* stream)
             if (rb != JOYSTICK_DATA_END) 
             {
                 receivedBytes[ndx] = rb;
-                if (ndx++ >= JOYSTICK_DATA_LENGTH) 
-                {
-                    ndx = JOYSTICK_DATA_LENGTH - 1;
-                }
+                if (ndx++ >= JOYSTICK_DATA_LENGTH) ndx = JOYSTICK_DATA_LENGTH - 1;
             }
             else 
             {
@@ -336,10 +330,7 @@ void receiveBytes(Stream* stream)
                 newData = true;
             }
         }
-        else if (rb == JOYSTICK_DATA_START) 
-        {
-            recvInProgress = true;
-        }
+        else if (rb == JOYSTICK_DATA_START) recvInProgress = true;
     }
 }
 
@@ -350,16 +341,11 @@ bool showNewData()
         if(useLogs) 
         {  
             String m = "This came in: ";
-            for (byte n = 0; n < numReceived; n++) 
-            {
-                m += String(receivedBytes[n], HEX);
-                m += " ";
-            }
+            for (byte n = 0; n < numReceived; n++) { m += String(receivedBytes[n], HEX); m += " "; }
             _log->println(m);
         }
         
         newData = false;
-
         return true;
     }
 
