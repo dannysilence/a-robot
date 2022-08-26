@@ -44,13 +44,12 @@ bool pressedSelect = false;
  
 // Joystick Message Retrieving Parts   
 bool newData       = false;
-uint8_t numReceived = 0;
+uint8_t nReceived  = 0;
 uint8_t receivedBytes[JOYSTICK_DATA_LENGTH];
 
 // Vehicle Speed/State Parts
 uint8_t v1 = 0x7F, v2 = 0x7F, driveMode = 1;          // Drive mode 1 - vehicle drives front/back by left joystick, left/right - by right, drive mode 2 - all directions handled by left joystick, drive mode 3 - all directions handled by right joystick;
-uint8_t _b3 = 0x00, _b4 = 0x00, b3 = 0x00, b4 = 0x00;
-uint8_t _l0 = 0x00;
+uint8_t _b3 = 0x00, _b4 = 0x00, b3 = 0x00, b4 = 0x00, _l0 = 0x00;
 
 void driveMotor(byte m1p, byte m2p)
 {   
@@ -208,7 +207,7 @@ void receiveBytes(Stream* stream)
             {
                 receivedBytes[ndx] = '\0'; // terminate the string
                 recvInProgress = false;
-                numReceived = ndx;  // save the number for use when printing
+                nReceived = ndx;  // save the number for use when printing
                 ndx = 0;
                 newData = true;
             }
@@ -224,7 +223,7 @@ bool showNewData()
         if(useLogs) 
         {  
             String m = "This came in: ";
-            for (byte n = 0; n < numReceived; n++) { m += String(receivedBytes[n], HEX); m += " "; }
+            for (byte n = 0; n < nReceived; n++) { m += String(receivedBytes[n], HEX); m += " "; }
          
             _log->println(m);
         }
