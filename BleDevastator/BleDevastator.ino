@@ -55,7 +55,7 @@ uint8_t v1 = 0x7F, v2 = 0x7F;
 uint8_t _b3 = 0x00, _b4 = 0x00, b3 = 0x00, b4 = 0x00;
 uint8_t _l0 = 0x00;
 
-void DriveMotorP(byte m1p, byte m2p)
+void driveMotor(byte m1p, byte m2p)
 {   
     if(useLogs) 
     {        
@@ -206,7 +206,7 @@ void loop()
         if(pid == _pid) return;   
         _pid = pid;
 
-        DriveMotorP(v1, v2);        
+        driveMotor(v1, v2);        
         checkButtons();
 
         //Control Drive Mode
