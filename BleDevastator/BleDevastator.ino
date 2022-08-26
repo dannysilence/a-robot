@@ -180,9 +180,6 @@ void setup()
     pinMode(L1, OUTPUT);
     pinMode(L2, OUTPUT);
 
-    pinMode(A6, INPUT);
-    pinMode(A7, INPUT);
-
     _pad = &(Serial);
     _log = &(Serial1);
 
@@ -195,12 +192,8 @@ void loop()
     
     if(showNewData())
     {
-        static uint8_t pid = 0, _pid = 0;
-        
-        uint8_t a = receivedBytes[0];
-        uint8_t b = receivedBytes[1];
-        uint8_t c = receivedBytes[2];
-        uint8_t d = receivedBytes[3];
+        static uint8_t pid = 0, _pid = 0;        
+        uint8_t a = receivedBytes[0], b = receivedBytes[1], c = receivedBytes[2], d = receivedBytes[3];
         
         v1 = getYMove(a, b, c, d);
         v2 = getXMove(a, b, c, d);
@@ -210,11 +203,10 @@ void loop()
 
         pid = receivedBytes[4]; 
 
-        if(pid == _pid)return;   
+        if(pid == _pid) return;   
         _pid = pid;
 
-        DriveMotorP(v1, v2);
-        
+        DriveMotorP(v1, v2);        
         checkButtons();
 
         //Control Drive Mode
@@ -235,8 +227,7 @@ void loop()
             l0 = (pressedL1) ? _l0 + VEHICLE_LIGHT_STEP : l0;  
             l0 = (pressedL2) ? _l0 - VEHICLE_LIGHT_STEP : l0;  
             
-            if(l0 < 0) l0 = 0; else
-            if(l0 > 0xFF) l0 = 0xFF;
+            if(l0 < 0) l0 = 0; else if(l0 > 0xFF) l0 = 0xFF;
             
             light(l0); 
         }
@@ -294,7 +285,6 @@ void receiveBytes(Stream* stream)
 {
     static bool recvInProgress = false;
     static uint8_t ndx = 0;
-
     uint8_t rb;   
 
     while (stream->available() > 0 && newData == false) 
