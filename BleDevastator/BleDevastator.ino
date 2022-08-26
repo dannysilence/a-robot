@@ -18,7 +18,7 @@ int M1 = 5;    //PLL based M1 Direction Control
 int M2 = 6;    //PLL based M2 Direction Control
 
 int L1 = 9;    //Front Light Control
-int L2 = 10;    //Rare Light Control
+int L2 = 10;   //Rare Light Control
 
 Stream* _pad;
 Stream* _log;
