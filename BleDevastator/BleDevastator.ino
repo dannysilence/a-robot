@@ -215,10 +215,8 @@ void loop()
         if(pressedSelect && pressed3) driveMode = 3;        
 
         //Control Debug Logging and Delays
-        if(pressedR1 && pressed1) useLogs = true;
-        if(pressedR2 && pressed1) useLogs = false;
-        if(pressedR1 && pressed2) useDelay = true;        
-        if(pressedR2 && pressed2) useDelay = false;
+        if((pressedR1 && pressed1) || (pressedR2 && pressed1)) useLogs  = pressedR1 && pressed1;
+        if((pressedR1 && pressed2) || (pressedR2 && pressed2)) useDelay = pressedR1 && pressed2;
 
         //Control Vehicle Lights
         if(pressedL1 || pressedL2)
