@@ -81,14 +81,6 @@ void DriveMotorP(byte m1p, byte m2p)
     int32_t c2 = a>b ? a*a-b*b : b*b-a*a;
     int16_t c = sqrt(c2);
   
-    String m = "DriveMotor(";
-    m += String(a, HEX);
-    m += ",";
-    m += String(b, HEX);
-    m += ",";
-    m += String(c, HEX);
-    m += ")";
-  
     byte x = 0x7F, y = 0x7F;
     float kX = 1, kY = 1;
     byte dY = m2p >= 0x7F ? m2p - 0x7F : 0x7F - m2p;
