@@ -136,23 +136,6 @@ void DriveMotorP(byte m1p, byte m2p)
   
     x = m1p >= 0x7F ? 0x7F + c*kX : 0x7F - c*kX;
     y = m1p >= 0x7F ? 0x7F + c*kY : 0x7F - c*kY;
-
-    if(useLogs) 
-    { 
-      m += "; ";
-      m += String(kX, HEX);
-      m += ",";
-      m += String(kY, HEX);
-      m += ",";
-      m += String(dY, HEX);
-    
-      m += "; ";
-      m += String(x, HEX);
-      m += ",";
-      m += String(y, HEX);
-      
-      _log->println(m);  
-    }
   
     if(x != 0x7F)
     {
