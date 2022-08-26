@@ -148,28 +148,6 @@ void light(uint8_t level)
     _l0 = level;
 }
 
-uint8_t getXMove(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
-{
-  switch (driveMode)
-  {
-    case 1:  return b;
-    case 2:  return d;
-    case 3:  return b;
-    default: return b;
-  }
-}
-
-uint8_t getYMove(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
-{
-  switch (driveMode)
-  {
-    case 1:  return c;
-    case 2:  return c;
-    case 3:  return a;
-    default: return c;
-  }
-}
-
 void checkButtons()
 {
     if(b4 == _b4 && b3 == _b3) return;
@@ -264,6 +242,28 @@ bool showNewData()
     }
 
     return false;
+}
+
+uint8_t getXMove(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
+{
+  switch (driveMode)
+  {
+    case 1:  return b;
+    case 2:  return d;
+    case 3:  return b;
+    default: return b;
+  }
+}
+
+uint8_t getYMove(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
+{
+  switch (driveMode)
+  {
+    case 1:  return c;
+    case 2:  return c;
+    case 3:  return a;
+    default: return c;
+  }
 }
 
 void setup() 
