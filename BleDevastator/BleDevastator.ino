@@ -16,7 +16,6 @@ int E1 = 4;    //PLL based M1 Speed Control
 int E2 = 7;    //PLL based M2 Speed Control
 int M1 = 5;    //PLL based M1 Direction Control
 int M2 = 6;    //PLL based M2 Direction Control
-
 int L1 = 9;    //Front Light Control
 int L2 = 10;   //Rare Light Control
 
@@ -111,18 +110,13 @@ void driveMotor(byte m1p, byte m2p)
     {
       digitalWrite(E1, HIGH);
       analogWrite(M1, x);
-    } else 
-    {
-      digitalWrite(E1, LOW);
-    }
+    } else digitalWrite(E1, LOW);
+    
     if(y != 0x7F)
     {
       digitalWrite(E2, HIGH);
       analogWrite(M2, y);
-    } else
-    {
-      digitalWrite(E2, LOW);
-    }
+    } else digitalWrite(E2, LOW);
 }
 
 void light(uint8_t level)
