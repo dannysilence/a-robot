@@ -170,68 +170,6 @@ uint8_t getYMove(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
   }
 }
 
-void setup() 
-{
-    Serial.begin(115200);
-    Serial1.begin(115200);
-
-    for(int i=4;i<=7;i++) pinMode(i, OUTPUT);
-
-    pinMode(L1, OUTPUT);
-    pinMode(L2, OUTPUT);
-
-    _pad = &(Serial);
-    _log = &(Serial1);
-
-    _log->println("RoboTank is ready");
-}
-
-void loop() 
-{ 
-    receiveBytes(_pad);
-    
-    if(showNewData())
-    {
-        static uint8_t pid = 0, _pid = 0;        
-        uint8_t a = receivedBytes[0], b = receivedBytes[1], c = receivedBytes[2], d = receivedBytes[3];
-        
-        v1 = getYMove(a, b, c, d);
-        v2 = getXMove(a, b, c, d);
-
-        b3 = receivedBytes[6];
-        b4 = receivedBytes[7];
-
-        pid = receivedBytes[4]; 
-
-        if(pid == _pid) return;   
-        _pid = pid;
-
-        driveMotor(v1, v2);        
-        checkButtons();
-
-        //Control Drive Mode
-        if(pressedSelect && pressed1) driveMode = 1;
-        if(pressedSelect && pressed2) driveMode = 2;
-        if(pressedSelect && pressed3) driveMode = 3;        
-
-        //Control Debug Logging and Delays
-        if((pressedR1 && pressed1) || (pressedR2 && pressed1)) useLogs  = pressedR1 && pressed1;
-        if((pressedR1 && pressed2) || (pressedR2 && pressed2)) useDelay = pressedR1 && pressed2;
-
-        //Control Vehicle Lights
-        if(pressedL1 || pressedL2)
-        {  
-            int16_t l0 = _l0;
-            l0 = (pressedL1) ? _l0 + VEHICLE_LIGHT_STEP : l0;  
-            l0 = (pressedL2) ? _l0 - VEHICLE_LIGHT_STEP : l0;  
-            
-            if(l0 < 0) l0 = 0; else if(l0 > 0xFF) l0 = 0xFF;
-            
-            light(l0); 
-        }
-    }
-}
-
 void checkButtons()
 {
     if(b4 == _b4 && b3 == _b3) return;
@@ -326,4 +264,66 @@ bool showNewData()
     }
 
     return false;
+}
+
+void setup() 
+{
+    Serial.begin(115200);
+    Serial1.begin(115200);
+
+    for(int i=4;i<=7;i++) pinMode(i, OUTPUT);
+
+    pinMode(L1, OUTPUT);
+    pinMode(L2, OUTPUT);
+
+    _pad = &(Serial);
+    _log = &(Serial1);
+
+    _log->println("RoboTank is ready");
+}
+
+void loop() 
+{ 
+    receiveBytes(_pad);
+    
+    if(showNewData())
+    {
+        static uint8_t pid = 0, _pid = 0;        
+        uint8_t a = receivedBytes[0], b = receivedBytes[1], c = receivedBytes[2], d = receivedBytes[3];
+        
+        v1 = getYMove(a, b, c, d);
+        v2 = getXMove(a, b, c, d);
+
+        b3 = receivedBytes[6];
+        b4 = receivedBytes[7];
+
+        pid = receivedBytes[4]; 
+
+        if(pid == _pid) return;   
+        _pid = pid;
+
+        driveMotor(v1, v2);        
+        checkButtons();
+
+        //Control Drive Mode
+        if(pressedSelect && pressed1) driveMode = 1;
+        if(pressedSelect && pressed2) driveMode = 2;
+        if(pressedSelect && pressed3) driveMode = 3;        
+
+        //Control Debug Logging and Delays
+        if((pressedR1 && pressed1) || (pressedR2 && pressed1)) useLogs  = pressedR1 && pressed1;
+        if((pressedR1 && pressed2) || (pressedR2 && pressed2)) useDelay = pressedR1 && pressed2;
+
+        //Control Vehicle Lights
+        if(pressedL1 || pressedL2)
+        {  
+            int16_t l0 = _l0;
+            l0 = (pressedL1) ? _l0 + VEHICLE_LIGHT_STEP : l0;  
+            l0 = (pressedL2) ? _l0 - VEHICLE_LIGHT_STEP : l0;  
+            
+            if(l0 < 0) l0 = 0; else if(l0 > 0xFF) l0 = 0xFF;
+            
+            light(l0); 
+        }
+    }
 }
