@@ -42,8 +42,6 @@ bool pressedR1     = false;
 bool pressedR2     = false;
 bool pressedStart  = false;
 bool pressedSelect = false;
-
-uint8_t driveMode = 1;          // Drive mode 1 - vehicle drives front/back by left joystick, left/right - by right, drive mode 2 - all directions handled by left joystick, drive mode 3 - all directions handled by right joystick
  
 // Joystick Message Retrieving Parts   
 bool newData       = false;
@@ -51,7 +49,7 @@ uint8_t numReceived = 0;
 uint8_t receivedBytes[JOYSTICK_DATA_LENGTH];
 
 // Vehicle Speed/State Parts
-uint8_t v1 = 0x7F, v2 = 0x7F;
+uint8_t v1 = 0x7F, v2 = 0x7F, driveMode = 1;          // Drive mode 1 - vehicle drives front/back by left joystick, left/right - by right, drive mode 2 - all directions handled by left joystick, drive mode 3 - all directions handled by right joystick;
 uint8_t _b3 = 0x00, _b4 = 0x00, b3 = 0x00, b4 = 0x00;
 uint8_t _l0 = 0x00;
 
