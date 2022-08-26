@@ -275,8 +275,7 @@ void setup()
 
 void loop() 
 { 
-    receiveBytes(_pad);
-    
+    receiveBytes(_pad);    
     if(showNewData())
     {
         static uint8_t pid = 0, _pid = 0;        
