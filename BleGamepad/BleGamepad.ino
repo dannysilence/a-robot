@@ -1,11 +1,12 @@
 #include <stdint.h>
 #include <Arduino.h>
-#include "Gamepad.h"
 
 #ifdef ARDUINO_AVR_UNO
 #include <SoftwareSerial.h>
 SoftwareSerial Serial1(2, 3);
 #endif
+
+#include "Gamepad.h"
 
 #define DEBUG_DELAY          0x7F  
 #define VEHICLE_LIGHT_STEP   0x40
