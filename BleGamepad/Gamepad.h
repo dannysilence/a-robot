@@ -1,6 +1,15 @@
 #ifndef GAMEPAD_H
 #define GAMEPAD_H
 
+#include <stdint.h>
+#include <Arduino.h>
+
+#ifdef ARDUINO_AVR_UNO
+#include <SoftwareSerial.h>
+SoftwareSerial Serial1(2, 3);
+#endif
+
+
 typedef struct GamepadState
 {
   byte Joystick1[2];
