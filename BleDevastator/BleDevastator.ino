@@ -1,10 +1,10 @@
 #include <stdint.h>
 #include <Arduino.h>
+#include <Servo.h>
 
-#ifdef ARDUINO_AVR_UNO
 #include <SoftwareSerial.h>
 SoftwareSerial Serial1(2, 3);
-#endif
+SoftwareSerial lensSerial(10, 11);
 
 #define DEBUG_DELAY          0x7F  
 #define VEHICLE_LIGHT_STEP   0x40
@@ -22,6 +22,7 @@ int L2 = 10;   //Rare Light Control
 
 Stream* _pad;
 Stream* _log;
+Servo servo;
 
 // General State Parts
 bool useLogs       = true;
@@ -55,7 +56,7 @@ uint8_t v1 = 0x7F, v2 = 0x7F;
 uint8_t _b3 = 0x00, _b4 = 0x00, b3 = 0x00, b4 = 0x00;
 uint8_t _l0 = 0x00;
 
-void DriveMotorP(byte m1p, byte m2p)
+void driveMotor(byte m1p, byte m2p)
 {   
     if(useLogs) 
     {        
@@ -170,70 +171,6 @@ uint8_t getYMove(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
   }
 }
 
-void setup() 
-{
-    Serial.begin(115200);
-    Serial1.begin(115200);
-
-    for(int i=4;i<=7;i++) pinMode(i, OUTPUT);
-
-    pinMode(L1, OUTPUT);
-    pinMode(L2, OUTPUT);
-
-    _pad = &(Serial);
-    _log = &(Serial1);
-
-    _log->println("RoboTank is ready");
-}
-
-void loop() 
-{ 
-    receiveBytes(_pad);
-    
-    if(showNewData())
-    {
-        static uint8_t pid = 0, _pid = 0;        
-        uint8_t a = receivedBytes[0], b = receivedBytes[1], c = receivedBytes[2], d = receivedBytes[3];
-        
-        v1 = getYMove(a, b, c, d);
-        v2 = getXMove(a, b, c, d);
-
-        b3 = receivedBytes[6];
-        b4 = receivedBytes[7];
-
-        pid = receivedBytes[4]; 
-
-        if(pid == _pid) return;   
-        _pid = pid;
-
-        DriveMotorP(v1, v2);        
-        checkButtons();
-
-        //Control Drive Mode
-        if(pressedSelect && pressed1) driveMode = 1;
-        if(pressedSelect && pressed2) driveMode = 2;
-        if(pressedSelect && pressed3) driveMode = 3;        
-
-        //Control Debug Logging and Delays
-        if(pressedR1 && pressed1) useLogs = true;
-        if(pressedR2 && pressed1) useLogs = false;
-        if(pressedR1 && pressed2) useDelay = true;        
-        if(pressedR2 && pressed2) useDelay = false;
-
-        //Control Vehicle Lights
-        if(pressedL1 || pressedL2)
-        {  
-            int16_t l0 = _l0;
-            l0 = (pressedL1) ? _l0 + VEHICLE_LIGHT_STEP : l0;  
-            l0 = (pressedL2) ? _l0 - VEHICLE_LIGHT_STEP : l0;  
-            
-            if(l0 < 0) l0 = 0; else if(l0 > 0xFF) l0 = 0xFF;
-            
-            light(l0); 
-        }
-    }
-}
-
 void checkButtons()
 {
     if(b4 == _b4 && b3 == _b3) return;
@@ -279,6 +216,38 @@ void checkButtons()
         _log->println(m);
         if(useDelay) delay(DEBUG_DELAY);
     }
+
+    
+        //Control Drive Mode
+        if(pressedSelect && pressed1) driveMode = 1;
+        if(pressedSelect && pressed2) driveMode = 2;
+        if(pressedSelect && pressed3) driveMode = 3;        
+
+        //Control Debug Logging and Delays
+        if(pressedR1 && pressed1) useLogs = true;
+        if(pressedR2 && pressed1) useLogs = false;
+        if(pressedR1 && pressed2) useDelay = true;        
+        if(pressedR2 && pressed2) useDelay = false;
+
+        //Control Vehicle Lights
+        if(pressedL1 || pressedL2)
+        {  
+            int16_t l0 = _l0;
+            l0 = (pressedL1) ? _l0 + VEHICLE_LIGHT_STEP : l0;  
+            l0 = (pressedL2) ? _l0 - VEHICLE_LIGHT_STEP : l0;  
+            
+            if(l0 < 0) l0 = 0; else if(l0 > 0xFF) l0 = 0xFF;
+            
+            light(l0); 
+        }
+
+        if(pressedL == true || pressedR == true)
+        {
+          //int p0 = servo.read();
+          int p1 = pressedR ? +5 : -5;
+          
+          moveServo(p1);
+        }
 }
 
 void receiveBytes(Stream* stream) 
@@ -328,4 +297,67 @@ bool showNewData()
     }
 
     return false;
+}
+
+void moveServo(int p)
+{
+    int p0 = servo.read();
+    int p1 = p0+p;
+    if(p1 < 0) p1 = 0;
+    if(p1 > 180) p1 = 180;
+   
+    servo.write(p1);
+    delay(15);
+    
+    String m = "Servo";
+    m += " is moving!";
+    m += String(p0);
+    m += " -> ";
+    m += String(p1);
+        
+    if(useLogs) _log->println(m);
+}
+
+void setup() 
+{
+    Serial.begin(115200);
+    Serial1.begin(115200);
+
+    for(int i=4;i<=7;i++) pinMode(i, OUTPUT);
+
+    pinMode(L1, OUTPUT);
+    pinMode(L2, OUTPUT);
+    pinMode(A4, INPUT);
+    
+    _pad = &(Serial);
+    _log = &(Serial1);
+
+    _log->println("RoboTank is ready");
+
+
+    servo.attach(A4);
+}
+
+void loop() 
+{ 
+    receiveBytes(_pad);    
+    if(showNewData())
+    {
+        static uint8_t pid = 0, _pid = 0;        
+        uint8_t a = receivedBytes[0], b = receivedBytes[1], c = receivedBytes[2], d = receivedBytes[3];
+        
+        v1 = getYMove(a, b, c, d);
+        v2 = getXMove(a, b, c, d);
+
+        b3 = receivedBytes[6];
+        b4 = receivedBytes[7];
+
+        pid = receivedBytes[4]; 
+
+        if(pid == _pid) return;   
+        _pid = pid;
+
+        driveMotor(v1, v2);        
+        checkButtons();
+    }
 }
