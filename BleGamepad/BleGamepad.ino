@@ -3,13 +3,10 @@
 
 #include "Gamepad.h"
 
-#define virbrationMotorPin 2
-
 volatile int buttonState[17];
 volatile int joystick[6] = {0, 0, 500, 500, 500, 500};
 bool f = false;
 unsigned long timer = 0;
-int k = 0;
 byte buf[sizeof(GamepadState)];
 
 Stream*  _io;
@@ -102,26 +99,14 @@ void setup()
 void loop()
 {
   while (true)
-  {
-    GamepadState x;
-    
+  {   
     if (millis() - timer >= 100)
     {
       if (checkDataUpdate())
       {
-        k = 0;
-        updateState(buf);
-        
+        updateState(buf);        
         _pad->send(_state);
-      } else 
-      {
-        //if(k++ < 1)
-        //{
-          // send this as in case first message didn't come up properly
-          _pad->send(_state);
-        //  delay(30);
-        //}
-      }
+      } else _pad->send(_state);
 
       timer = millis();
     }
