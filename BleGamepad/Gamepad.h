@@ -64,12 +64,14 @@ class Gamepad
     byte numReceived;
     byte receivedBytes[(sizeof(GamepadState)+2)*2];
     Stream* io;    
+    Stream* log;    
   public:
-    Gamepad(Stream* stream)
+    Gamepad(Stream* ioStream, Stream* logStream)
     {
       this->hasReadData = false;
       this->numReceived = 0;
-      this->io = stream;
+      this->io  = ioStream;
+      this->log = logStream;
     }
 
     bool receive(GamepadState& state)
@@ -111,7 +113,7 @@ class Gamepad
         String m = "This came in: ";
         for (byte n = 0; n < this->numReceived; n++) { m += String(this->receivedBytes[n], HEX); m += " "; }
          
-        Serial1.println(m);
+        this->log->println(m);
         
         return true;
       }
