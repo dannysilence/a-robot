@@ -107,7 +107,7 @@ class Gamepad
         GamepadState::clone(&x, &state);
 
         String m = "This came in: ";
-        for (byte n = 0; n < this->numReceivedceived; n++) { m += String(this->receivedBytes[n], HEX); m += " "; }
+        for (byte n = 0; n < this->numReceived; n++) { m += String(this->receivedBytes[n], HEX); m += " "; }
          
         Serial1.println(m);
         
