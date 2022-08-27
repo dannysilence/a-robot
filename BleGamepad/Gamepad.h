@@ -7,6 +7,7 @@ typedef struct GamepadState
   byte Joystick2[2];
   byte Id;
   byte Buttons[3];
+  
   static void clone(GamepadState* src, GamepadState* dst)
   {
     dst->Id = src->Id;
@@ -18,6 +19,7 @@ typedef struct GamepadState
     dst->Joystick2[0] = src->Joystick2[0];
     dst->Joystick2[1] = src->Joystick2[1];
   }
+  
   static GamepadState fromBytes(byte* buf)
   {
     GamepadState x;    
@@ -33,6 +35,7 @@ typedef struct GamepadState
 
     return x;
   }
+  
   static byte* toBytes(GamepadState state)
   {
     byte x[sizeof(GamepadState)];
@@ -60,8 +63,7 @@ class Gamepad
     bool hasReadData;
     byte numReceived;
     byte receivedBytes[(sizeof(GamepadState)+2)*2];
-    Stream* io;
-    
+    Stream* io;    
   public:
     Gamepad(Stream* stream)
     {
