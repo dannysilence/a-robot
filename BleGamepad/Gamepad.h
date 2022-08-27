@@ -110,7 +110,7 @@ class Gamepad
         GamepadState x = GamepadState::fromBytes(this->receivedBytes);
         GamepadState::clone(&x, &state);
 
-        String m = "This came in: ";
+        String m = "Gamepad in: ";
         for (byte n = 0; n < this->numReceived; n++) { m += String(this->receivedBytes[n], HEX); m += " "; }
          
         this->log->println(m);
@@ -128,6 +128,9 @@ class Gamepad
       this->io->write(MESSAGE_START);
       this->io->write(buf, sizeof(GamepadState));
       this->io->write(MESSAGE_END);
+      
+      String m = "Gamepad out: ";
+      for (byte n = 0; n < sizeof(GamepadState); n++) { m += String(buf[n], HEX); m += " "; }
     }
 };
 
