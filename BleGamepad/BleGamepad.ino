@@ -181,6 +181,27 @@ void checkButtons()
         _log->println(m);
         if(useDelay) delay(DEBUG_DELAY);
     }
+ 
+    //Control Drive Mode
+    if(pressedSelect && pressed1) driveMode = 1;
+    if(pressedSelect && pressed2) driveMode = 2;
+    if(pressedSelect && pressed3) driveMode = 3;        
+
+    //Control Debug Logging and Delays
+    if((pressedR1 && pressed1) || (pressedR2 && pressed1)) useLogs  = pressedR1 && pressed1;
+    if((pressedR1 && pressed2) || (pressedR2 && pressed2)) useDelay = pressedR1 && pressed2;
+
+    //Control Vehicle Lights
+    if(pressedL1 || pressedL2)
+    {  
+        int16_t l0 = _l0;
+        l0 = (pressedL1) ? _l0 + VEHICLE_LIGHT_STEP : l0;  
+        l0 = (pressedL2) ? _l0 - VEHICLE_LIGHT_STEP : l0;  
+            
+        if(l0 < 0) l0 = 0; else if(l0 > 0xFF) l0 = 0xFF;
+            
+        light(l0); 
+    }
 }
 
 uint8_t getXMove(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
@@ -217,7 +238,7 @@ void setup()
 
     _io  = &(Serial);
     _log = &(Serial1);
-    _pad = &Gamepad(_io);
+    _pad = &Gamepad(_io, _log);
  
     _log->println("RoboTank is ready");
 }
@@ -240,26 +261,5 @@ void loop()
 
         driveMotor(v1, v2);        
         checkButtons();
-
-        //Control Drive Mode
-        if(pressedSelect && pressed1) driveMode = 1;
-        if(pressedSelect && pressed2) driveMode = 2;
-        if(pressedSelect && pressed3) driveMode = 3;        
-
-        //Control Debug Logging and Delays
-        if((pressedR1 && pressed1) || (pressedR2 && pressed1)) useLogs  = pressedR1 && pressed1;
-        if((pressedR1 && pressed2) || (pressedR2 && pressed2)) useDelay = pressedR1 && pressed2;
-
-        //Control Vehicle Lights
-        if(pressedL1 || pressedL2)
-        {  
-            int16_t l0 = _l0;
-            l0 = (pressedL1) ? _l0 + VEHICLE_LIGHT_STEP : l0;  
-            l0 = (pressedL2) ? _l0 - VEHICLE_LIGHT_STEP : l0;  
-            
-            if(l0 < 0) l0 = 0; else if(l0 > 0xFF) l0 = 0xFF;
-            
-            light(l0); 
-        }
     }
 }
