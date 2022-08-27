@@ -22,7 +22,7 @@ int L2 = 10;   //Rare Light Control
 Stream*  _io;
 Stream*  _log;
 Gamepad* _pad;
-GamepadState state;
+GamepadState* _state;
 
 // General State Parts
 bool useLogs       = true;
@@ -238,26 +238,31 @@ void setup()
 
     _io  = &(Serial);
     _log = &(Serial1);
-    _pad = &Gamepad(_io, _log);
+    
+    Gamepad pad = Gamepad(_io, _log);
+    GamepadState state;
+    
+    _pad = &pad;    
+    _state = &state;
  
     _log->println("RoboTank is ready");
 }
 
 void loop() 
 { 
-    if(_pad->receive(state))
+    if(_pad->receive(_state))
     {
         static uint8_t pid = 0;        
-        uint8_t a = state.Joystick1[0], b = state.Joystick1[1], c = state.Joystick2[0], d = state.Joystick2[1];
+        uint8_t a = _state->Joystick1[0], b = _state->Joystick1[1], c = _state->Joystick2[0], d = _state->Joystick2[1];
         
         v1 = getYMove(a, b, c, d);
         v2 = getXMove(a, b, c, d);
 
-        b3 = state.Buttons[1];
-        b4 = state.Buttons[2];
+        b3 = _state->Buttons[1];
+        b4 = _state->Buttons[2];
 
-        if(pid == state.Id) return;   
-        pid = state.Id;
+        if(pid == _state->Id) return;   
+        pid = _state->Id;
 
         driveMotor(v1, v2);        
         checkButtons();
