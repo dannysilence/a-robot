@@ -6,11 +6,10 @@
 SoftwareSerial Serial1(2, 3);
 #endif
 
+#include "Gamepad.h"
+
 #define DEBUG_DELAY          0x7F  
 #define VEHICLE_LIGHT_STEP   0x40
-#define JOYSTICK_DATA_LENGTH 0x20
-#define JOYSTICK_DATA_START  0xAA
-#define JOYSTICK_DATA_END    0xBB
 
 int E1 = 4;    //PLL based M1 Speed Control
 int E2 = 7;    //PLL based M2 Speed Control
@@ -19,8 +18,11 @@ int M2 = 6;    //PLL based M2 Direction Control
 int L1 = 9;    //Front Light Control
 int L2 = 10;   //Rare Light Control
 
-Stream* _pad;
-Stream* _log;
+// Joystick Message Retrieving Parts 
+Stream*  _io;
+Stream*  _log;
+Gamepad* _pad;
+GamepadState* _state;
 
 // General State Parts
 bool useLogs       = true;
@@ -42,14 +44,9 @@ bool pressedR2     = false;
 bool pressedStart  = false;
 bool pressedSelect = false;
  
-// Joystick Message Retrieving Parts   
-bool newData       = false;
-uint8_t nReceived  = 0;
-uint8_t receivedBytes[JOYSTICK_DATA_LENGTH];
-
 // Vehicle Speed/State Parts
-uint8_t v1 = 0x7F, v2 = 0x7F, driveMode = 1;          // Drive mode 1 - vehicle drives front/back by left joystick, left/right - by right, drive mode 2 - all directions handled by left joystick, drive mode 3 - all directions handled by right joystick;
-uint8_t _b3 = 0x00, _b4 = 0x00, b3 = 0x00, b4 = 0x00, _l0 = 0x00;
+uint8_t v1 = 0x7F, v2 = 0x7F, driveMode = 1, pid = 0;          // Drive mode 1 - vehicle drives front/back by left joystick, left/right - by right, drive mode 2 - all directions handled by left joystick, drive mode 3 - all directions handled by right joystick;
+uint8_t _b1 = 0x00, _b2 = 0x00, _l0 = 0x00;
 
 void driveMotor(byte m1p, byte m2p)
 {   
@@ -141,29 +138,29 @@ void light(uint8_t level)
 
 void checkButtons()
 {
-    if(b4 == _b4 && b3 == _b3) return;
+    if(_state->Buttons[1] == _b1 && _state->Buttons[2] == _b2) return;
 
-    pressed1      = ((b3 & 0x01) == 0x01);
-    pressed2      = ((b3 & 0x04) == 0x04);
-    pressed3      = ((b3 & 0x08) == 0x08);
-    pressed4      = ((b3 & 0x02) == 0x02);
-    pressedL1     = ((b3 & 0x40) == 0x40);
-    pressedL2     = ((b3 & 0x80) == 0x80);
-    pressedR1     = ((b3 & 0x10) == 0x10);
-    pressedR2     = ((b3 & 0x20) == 0x20); 
-    pressedU      = ((b4 & 0x10) == 0x10);
-    pressedL      = ((b4 & 0x20) == 0x20);
-    pressedR      = ((b4 & 0x40) == 0x40);
-    pressedD      = ((b4 & 0x80) == 0x80);
-    pressedStart  = ((b4 & 0x0B) == 0x0B);
-    pressedSelect = ((b4 & 0x07) == 0x07);    
- 
-    _b3 = b3;
-    _b4 = b4;
+    _b1 = _state->Buttons[1];
+    _b2 = _state->Buttons[2];
+
+    pressed1      = ((_b1 & 0x01) == 0x01);
+    pressed2      = ((_b1 & 0x04) == 0x04);
+    pressed3      = ((_b1 & 0x08) == 0x08);
+    pressed4      = ((_b1 & 0x02) == 0x02);
+    pressedL1     = ((_b1 & 0x40) == 0x40);
+    pressedL2     = ((_b1 & 0x80) == 0x80);
+    pressedR1     = ((_b1 & 0x10) == 0x10);
+    pressedR2     = ((_b1 & 0x20) == 0x20); 
+    pressedU      = ((_b2 & 0x10) == 0x10);
+    pressedL      = ((_b2 & 0x20) == 0x20);
+    pressedR      = ((_b2 & 0x40) == 0x40);
+    pressedD      = ((_b2 & 0x80) == 0x80);
+    pressedStart  = ((_b2 & 0x0B) == 0x0B);
+    pressedSelect = ((_b2 & 0x07) == 0x07);    
 
     if(useLogs) 
     { 
-        String m = "Buttons: ";  m += String(b3, HEX);  m += String(b4, HEX);  m += " [";
+        String m = "Buttons: ";  m += String(_b1, HEX);  m += String(_b2, HEX);  m += " [";
         
         if(pressedStart)  m += ("START ");
         if(pressedSelect) m += ("SELECT ");
@@ -184,55 +181,27 @@ void checkButtons()
         _log->println(m);
         if(useDelay) delay(DEBUG_DELAY);
     }
-}
+ 
+    //Control Drive Mode
+    if(pressedSelect && pressed1) driveMode = 1;
+    if(pressedSelect && pressed2) driveMode = 2;
+    if(pressedSelect && pressed3) driveMode = 3;        
 
-void receiveBytes(Stream* stream) 
-{
-    static bool recvInProgress = false;
-    static uint8_t ndx = 0;
-    uint8_t rb;   
+    //Control Debug Logging and Delays
+    if((pressedR1 && pressed1) || (pressedR2 && pressed1)) useLogs  = pressedR1 && pressed1;
+    if((pressedR1 && pressed2) || (pressedR2 && pressed2)) useDelay = pressedR1 && pressed2;
 
-    while (stream->available() > 0 && newData == false) 
-    {
-        rb = stream->read();
-
-        if (recvInProgress == true) 
-        {
-            if (rb != JOYSTICK_DATA_END) 
-            {
-                receivedBytes[ndx] = rb;
-                if (ndx++ >= JOYSTICK_DATA_LENGTH) ndx = JOYSTICK_DATA_LENGTH - 1;
-            }
-            else 
-            {
-                receivedBytes[ndx] = '\0'; // terminate the string
-                recvInProgress = false;
-                nReceived = ndx;  // save the number for use when printing
-                ndx = 0;
-                newData = true;
-            }
-        }
-        else if (rb == JOYSTICK_DATA_START) recvInProgress = true;
+    //Control Vehicle Lights
+    if(pressedL1 || pressedL2)
+    {  
+        int16_t l0 = _l0;
+        l0 = (pressedL1) ? _l0 + VEHICLE_LIGHT_STEP : l0;  
+        l0 = (pressedL2) ? _l0 - VEHICLE_LIGHT_STEP : l0;  
+            
+        if(l0 < 0) l0 = 0; else if(l0 > 0xFF) l0 = 0xFF;
+            
+        light(l0); 
     }
-}
-
-bool showNewData() 
-{
-    if (newData == true) 
-    {
-        if(useLogs) 
-        {  
-            String m = "This came in: ";
-            for (byte n = 0; n < nReceived; n++) { m += String(receivedBytes[n], HEX); m += " "; }
-         
-            _log->println(m);
-        }
-        
-        newData = false;
-        return true;
-    }
-
-    return false;
 }
 
 uint8_t getXMove(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
@@ -267,53 +236,30 @@ void setup()
     pinMode(L1, OUTPUT);
     pinMode(L2, OUTPUT);
 
-    _pad = &(Serial);
+    _io  = &(Serial);
     _log = &(Serial1);
-
+    
+    Gamepad pad = Gamepad(_io, _log);
+    GamepadState state;
+    
+    _pad = &pad;    
+    _state = &state;
+ 
     _log->println("RoboTank is ready");
 }
 
 void loop() 
 { 
-    receiveBytes(_pad);    
-    if(showNewData())
+    if(_pad->receive(_state))
     {
-        static uint8_t pid = 0, _pid = 0;        
-        uint8_t a = receivedBytes[0], b = receivedBytes[1], c = receivedBytes[2], d = receivedBytes[3];
+        if(_state->Id > 0 && _state->Id < pid) return; else pid = _state->Id;
+        
+        uint8_t a = _state->Joystick1[0], b = _state->Joystick1[1], c = _state->Joystick2[0], d = _state->Joystick2[1];
         
         v1 = getYMove(a, b, c, d);
-        v2 = getXMove(a, b, c, d);
-
-        b3 = receivedBytes[6];
-        b4 = receivedBytes[7];
-
-        pid = receivedBytes[4]; 
-
-        if(pid == _pid) return;   
-        _pid = pid;
+        v2 = getXMove(a, b, c, d);       
 
         driveMotor(v1, v2);        
         checkButtons();
-
-        //Control Drive Mode
-        if(pressedSelect && pressed1) driveMode = 1;
-        if(pressedSelect && pressed2) driveMode = 2;
-        if(pressedSelect && pressed3) driveMode = 3;        
-
-        //Control Debug Logging and Delays
-        if((pressedR1 && pressed1) || (pressedR2 && pressed1)) useLogs  = pressedR1 && pressed1;
-        if((pressedR1 && pressed2) || (pressedR2 && pressed2)) useDelay = pressedR1 && pressed2;
-
-        //Control Vehicle Lights
-        if(pressedL1 || pressedL2)
-        {  
-            int16_t l0 = _l0;
-            l0 = (pressedL1) ? _l0 + VEHICLE_LIGHT_STEP : l0;  
-            l0 = (pressedL2) ? _l0 - VEHICLE_LIGHT_STEP : l0;  
-            
-            if(l0 < 0) l0 = 0; else if(l0 > 0xFF) l0 = 0xFF;
-            
-            light(l0); 
-        }
     }
 }
