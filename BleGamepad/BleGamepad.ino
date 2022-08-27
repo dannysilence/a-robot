@@ -45,8 +45,8 @@ bool pressedStart  = false;
 bool pressedSelect = false;
  
 // Vehicle Speed/State Parts
-uint8_t v1 = 0x7F, v2 = 0x7F, driveMode = 1;          // Drive mode 1 - vehicle drives front/back by left joystick, left/right - by right, drive mode 2 - all directions handled by left joystick, drive mode 3 - all directions handled by right joystick;
-uint8_t _b3 = 0x00, _b4 = 0x00, b3 = 0x00, b4 = 0x00, _l0 = 0x00;
+uint8_t v1 = 0x7F, v2 = 0x7F, driveMode = 1, pid = 0;          // Drive mode 1 - vehicle drives front/back by left joystick, left/right - by right, drive mode 2 - all directions handled by left joystick, drive mode 3 - all directions handled by right joystick;
+uint8_t _b1 = 0x00, _b2 = 0x00, _l0 = 0x00;
 
 void driveMotor(byte m1p, byte m2p)
 {   
@@ -138,29 +138,29 @@ void light(uint8_t level)
 
 void checkButtons()
 {
-    if(b4 == _b4 && b3 == _b3) return;
+    if(_state->Buttons[1] == _b1 && _state->Buttons[2] == _b2) return;
 
-    pressed1      = ((b3 & 0x01) == 0x01);
-    pressed2      = ((b3 & 0x04) == 0x04);
-    pressed3      = ((b3 & 0x08) == 0x08);
-    pressed4      = ((b3 & 0x02) == 0x02);
-    pressedL1     = ((b3 & 0x40) == 0x40);
-    pressedL2     = ((b3 & 0x80) == 0x80);
-    pressedR1     = ((b3 & 0x10) == 0x10);
-    pressedR2     = ((b3 & 0x20) == 0x20); 
-    pressedU      = ((b4 & 0x10) == 0x10);
-    pressedL      = ((b4 & 0x20) == 0x20);
-    pressedR      = ((b4 & 0x40) == 0x40);
-    pressedD      = ((b4 & 0x80) == 0x80);
-    pressedStart  = ((b4 & 0x0B) == 0x0B);
-    pressedSelect = ((b4 & 0x07) == 0x07);    
- 
-    _b3 = b3;
-    _b4 = b4;
+    _b1 = _state->Buttons[1];
+    _b2 = _state->Buttons[2];
+
+    pressed1      = ((_b1 & 0x01) == 0x01);
+    pressed2      = ((_b1 & 0x04) == 0x04);
+    pressed3      = ((_b1 & 0x08) == 0x08);
+    pressed4      = ((_b1 & 0x02) == 0x02);
+    pressedL1     = ((_b1 & 0x40) == 0x40);
+    pressedL2     = ((_b1 & 0x80) == 0x80);
+    pressedR1     = ((_b1 & 0x10) == 0x10);
+    pressedR2     = ((_b1 & 0x20) == 0x20); 
+    pressedU      = ((_b2 & 0x10) == 0x10);
+    pressedL      = ((_b2 & 0x20) == 0x20);
+    pressedR      = ((_b2 & 0x40) == 0x40);
+    pressedD      = ((_b2 & 0x80) == 0x80);
+    pressedStart  = ((_b2 & 0x0B) == 0x0B);
+    pressedSelect = ((_b2 & 0x07) == 0x07);    
 
     if(useLogs) 
     { 
-        String m = "Buttons: ";  m += String(b3, HEX);  m += String(b4, HEX);  m += " [";
+        String m = "Buttons: ";  m += String(_b1, HEX);  m += String(_b2, HEX);  m += " [";
         
         if(pressedStart)  m += ("START ");
         if(pressedSelect) m += ("SELECT ");
@@ -252,17 +252,12 @@ void loop()
 { 
     if(_pad->receive(_state))
     {
-        static uint8_t pid = 0;        
+        if(_state->Id > 0 && _state->Id < pid) return; else pid = _state->Id;
+        
         uint8_t a = _state->Joystick1[0], b = _state->Joystick1[1], c = _state->Joystick2[0], d = _state->Joystick2[1];
         
         v1 = getYMove(a, b, c, d);
-        v2 = getXMove(a, b, c, d);
-
-        b3 = _state->Buttons[1];
-        b4 = _state->Buttons[2];
-
-        if(pid == _state->Id) return;   
-        pid = _state->Id;
+        v2 = getXMove(a, b, c, d);       
 
         driveMotor(v1, v2);        
         checkButtons();
