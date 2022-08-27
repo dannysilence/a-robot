@@ -83,20 +83,21 @@ void setup()
 
   _io  = &(Serial1);
   _log = &(Serial);
+  
+  Serial.println("Gamepad is ready");
     
   Gamepad pad = Gamepad(_io, _log);
   GamepadState state;
     
   _pad = &pad;    
   _state = &state;
- 
-  _log->println("Gamepad is ready");
 
   for (int i = 0; i < 17; i++) pinMode(i, INPUT);
 }
 
 void loop()
 {
+  _log->println("...");
   while (true)
   {   
     if (millis() - timer >= 100)
