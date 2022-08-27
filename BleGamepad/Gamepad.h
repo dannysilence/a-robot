@@ -9,14 +9,14 @@ typedef struct GamepadState
   byte Buttons[3];
   static void clone(GamepadState* src, GamepadState* dst)
   {
-    dst->Joystick1[0] = src->Joystick1[0];
-    dst->Joystick1[1] = src->Joystick1[1];
-    dst->Joystick2[0] = src->Joystick2[0];
-    dst->Joystick2[1] = src->Joystick2[1];
     dst->Id = src->Id;
     dst->Buttons[0] = src->Buttons[0];
     dst->Buttons[1] = src->Buttons[1];
     dst->Buttons[2] = src->Buttons[2];
+    dst->Joystick1[0] = src->Joystick1[0];
+    dst->Joystick1[1] = src->Joystick1[1];
+    dst->Joystick2[0] = src->Joystick2[0];
+    dst->Joystick2[1] = src->Joystick2[1];
   }
   static GamepadState fromBytes(byte* buf)
   {
