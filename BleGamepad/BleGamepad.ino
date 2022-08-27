@@ -18,8 +18,11 @@ int M2 = 6;    //PLL based M2 Direction Control
 int L1 = 9;    //Front Light Control
 int L2 = 10;   //Rare Light Control
 
-Stream* _pad;
-Stream* _log;
+// Joystick Message Retrieving Parts 
+Stream*  _io;
+Stream*  _log;
+Gamepad* _pad;
+GamepadState state;
 
 // General State Parts
 bool useLogs       = true;
@@ -41,11 +44,6 @@ bool pressedR2     = false;
 bool pressedStart  = false;
 bool pressedSelect = false;
  
-// Joystick Message Retrieving Parts   
-bool newData       = false;
-uint8_t nReceived  = 0;
-uint8_t receivedBytes[JOYSTICK_DATA_LENGTH];
-
 // Vehicle Speed/State Parts
 uint8_t v1 = 0x7F, v2 = 0x7F, driveMode = 1;          // Drive mode 1 - vehicle drives front/back by left joystick, left/right - by right, drive mode 2 - all directions handled by left joystick, drive mode 3 - all directions handled by right joystick;
 uint8_t _b3 = 0x00, _b4 = 0x00, b3 = 0x00, b4 = 0x00, _l0 = 0x00;
@@ -207,9 +205,6 @@ uint8_t getYMove(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
   }
 }
 
-Gamepad* pad;
-GamepadState state;
-
 void setup() 
 {
     Serial.begin(115200);
@@ -220,16 +215,16 @@ void setup()
     pinMode(L1, OUTPUT);
     pinMode(L2, OUTPUT);
 
-    _pad = &(Serial);
+    _io  = &(Serial);
     _log = &(Serial1);
-
-    pad = &Gamepad(_pad);
+    _pad = &Gamepad(_io);
+ 
     _log->println("RoboTank is ready");
 }
 
 void loop() 
 { 
-    if(pad->receive(state))
+    if(_pad->receive(state))
     {
         static uint8_t pid = 0;        
         uint8_t a = state.Joystick1[0], b = state.Joystick1[1], c = state.Joystick2[0], d = state.Joystick2[1];
@@ -237,8 +232,8 @@ void loop()
         v1 = getYMove(a, b, c, d);
         v2 = getXMove(a, b, c, d);
 
-        b3 = receivedBytes[6];
-        b4 = receivedBytes[7];
+        b3 = state.Buttons[1];
+        b4 = state.Buttons[2];
 
         if(pid == state.Id) return;   
         pid = state.Id;
