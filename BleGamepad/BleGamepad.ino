@@ -46,13 +46,12 @@ bool checkDataUpdate()
 void updateState(byte x[sizeof(GamepadState)])
 {
   static uint8_t id = 0;
-  String str = "";
-  int k = 0;
-  
   unsigned long Btns = 0;
+  int k = 0;  
+  
   for (int i = 2; i < 6; i++)
   {
-    int t = joystick[i];// == 0 ? 1 : joystick[i];
+    int t = joystick[i];
     
     t = (((t + 1) / 4) + 2) & 255;
     t = t <= 2 ? 0 : t;
