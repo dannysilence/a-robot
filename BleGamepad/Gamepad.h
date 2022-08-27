@@ -60,6 +60,8 @@ class Gamepad
     const byte MESSAGE_START = 0xAA;
     const byte MESSAGE_END = 0xBB;
     const byte MESSAGE_LENGTH = sizeof(GamepadState)+2;
+    bool recvInProgress;
+    uint8_t ndx;
     bool hasReadData;
     byte numReceived;
     byte receivedBytes[(sizeof(GamepadState)+2)*2];
@@ -69,49 +71,49 @@ class Gamepad
     Gamepad(Stream* ioStream, Stream* logStream)
     {
       this->hasReadData = false;
+      this->ndx = 0;
       this->numReceived = 0;
       this->io  = ioStream;
       this->log = logStream;
+      this->recvInProgress = false;
     }
 
-    bool receive(GamepadState& state)
-    {
-      static bool recvInProgress = false;
-      static uint8_t ndx = 0;
+    bool receive(GamepadState* state)
+    {      
       byte rb;   
 
       while (this->io->available() > 0 && this->hasReadData == false) 
       {
         rb = this->io->read();
 
-        if (recvInProgress == true) 
+        if (this->recvInProgress == true) 
         {
             if (rb != MESSAGE_END) 
             {
-                this->receivedBytes[ndx] = rb;
-                if (ndx++ >= MESSAGE_LENGTH*2) ndx = MESSAGE_LENGTH*2 - 1;
+                this->receivedBytes[this->ndx] = rb;
+                if (this->ndx++ >= MESSAGE_LENGTH*2) this->ndx = MESSAGE_LENGTH*2 - 1;
             }
             else 
             {
-                this->receivedBytes[ndx] = '\0'; 
-                recvInProgress = false;
-                this->numReceived = ndx;  
-                ndx = 0;
+                this->receivedBytes[this->ndx] = '\0'; 
+                this->recvInProgress = false;
+                this->numReceived = this->ndx;  
+                this->ndx = 0;
                 this->hasReadData = true;
             }
         }
-        else if (rb == MESSAGE_START) recvInProgress = true;
+        else if (rb == MESSAGE_START) this->recvInProgress = true;
       }
 
       if (this->hasReadData == true) 
       {
         this->hasReadData = false;
 
-        GamepadState x = GamepadState::fromBytes(this->receivedBytes);
-        GamepadState::clone(&x, &state);
-
         String m = "GamepadState in: ";
         for (byte n = 0; n < this->numReceived; n++) { m += String(this->receivedBytes[n], HEX); m += " "; }
+
+        GamepadState x = GamepadState::fromBytes(this->receivedBytes);
+        GamepadState::clone(&x, state);
          
         this->log->println(m);
         
