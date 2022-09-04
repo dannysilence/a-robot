@@ -1,16 +1,21 @@
 #include <stdint.h>
 #include <Arduino.h>
 #include <Servo.h>
-
 #include <SoftwareSerial.h>
+
+#include "HUSKYLENS.h"
+
 SoftwareSerial Serial1(2, 3);
 SoftwareSerial lensSerial(10, 11);
 
+
 #define DEBUG_DELAY          0x7F  
 #define VEHICLE_LIGHT_STEP   0x40
-#define JOYSTICK_DATA_LENGTH 0x20
-#define JOYSTICK_DATA_START  0xAA
-#define JOYSTICK_DATA_END    0xBB
+#define JOYSTICK_DATA_LENGTH 0x40
+#define JOYSTICK_DATA_STARTHI 0xAA
+#define JOYSTICK_DATA_STARTLO 0xBB
+#define JOYSTICK_DATA_ENDHI   0xBB
+#define JOYSTICK_DATA_ENDLO   0xAA
 
 int E1 = 4;    //PLL based M1 Speed Control
 int E2 = 7;    //PLL based M2 Speed Control
@@ -62,7 +67,7 @@ void driveMotor(byte m1p, byte m2p)
     {        
       String m = "DriveMotor["; m += String(driveMode); m += "]: "; m += String(m1p, HEX); m += ","; m += String(m2p,HEX);
     
-      _log->println(m);
+      sendLog(m);
       if(useDelay) delay(1000);
     }
     
@@ -134,7 +139,7 @@ void light(uint8_t level)
     {        
         String m = "Light: "; m += _l0 > 0   ? "ON" : "OFF"; m += "->"; m += level > 0 ? "ON" : "OFF"; m += ", level: "; m += String(level, HEX);
         
-        _log->println(m);
+        sendLog(m);
         if(useDelay) delay(DEBUG_DELAY);
     }
    
@@ -213,7 +218,7 @@ void checkButtons()
         if(pressedD)      m += ("DOWN ");
         m += (" ]");
       
-        _log->println(m);
+        sendLog(m);
         if(useDelay) delay(DEBUG_DELAY);
     }
 
@@ -244,7 +249,7 @@ void checkButtons()
         if(pressedL == true || pressedR == true)
         {
           //int p0 = servo.read();
-          int p1 = pressedR ? +5 : -5;
+          int p1 = pressedR ? +15 : -15;
           
           moveServo(p1);
         }
@@ -262,12 +267,13 @@ void receiveBytes(Stream* stream)
 
         if (recvInProgress == true) 
         {
-            if (rb != JOYSTICK_DATA_END) 
+            if (rb != JOYSTICK_DATA_ENDHI) 
             {
                 receivedBytes[ndx] = rb;
                 if (ndx++ >= JOYSTICK_DATA_LENGTH) ndx = JOYSTICK_DATA_LENGTH - 1;
             }
             else 
+            if (stream->available() ? stream->read() == JOYSTICK_DATA_ENDLO : false)
             {
                 receivedBytes[ndx] = '\0'; // terminate the string
                 recvInProgress = false;
@@ -276,21 +282,32 @@ void receiveBytes(Stream* stream)
                 newData = true;
             }
         }
-        else if (rb == JOYSTICK_DATA_START) recvInProgress = true;
+        else if (rb == JOYSTICK_DATA_STARTHI && ((stream->available() ? stream->read() == JOYSTICK_DATA_STARTLO : false))) recvInProgress = true;
     }
+}
+
+void sendLog(String m)
+{
+  if(useLogs) 
+  {  
+    _log->println(m);
+    //_pad->write(0xAA);
+    _pad->println(m);
+    //_pad->write(0xBB);
+//    Serial.write(0xAA);
+    Serial.print(m);
+//    Serial.write(0xBB);
+  }  
 }
 
 bool showNewData() 
 {
     if (newData == true) 
     {
-        if(useLogs) 
-        {  
-            String m = "This came in: ";
-            for (byte n = 0; n < numReceived; n++) { m += String(receivedBytes[n], HEX); m += " "; }
+        String m = "This came in: ";
+        for (byte n = 0; n < numReceived; n++) { m += String(receivedBytes[n], HEX); m += " "; }
          
-            _log->println(m);
-        }
+        sendLog(m);
         
         newData = false;
         return true;
@@ -315,7 +332,7 @@ void moveServo(int p)
     m += " -> ";
     m += String(p1);
         
-    if(useLogs) _log->println(m);
+    if(useLogs) sendLog(m);
 }
 
 void setup() 
@@ -332,7 +349,7 @@ void setup()
     _pad = &(Serial);
     _log = &(Serial1);
 
-    _log->println("RoboTank is ready");
+    sendLog("RoboTank is ready!");
 
 
     servo.attach(A4);
@@ -340,6 +357,7 @@ void setup()
 
 void loop() 
 { 
+//    sendLog("loop");
     receiveBytes(_pad);    
     if(showNewData())
     {
