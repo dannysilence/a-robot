@@ -285,5 +285,5 @@ void checkButtons()
     
         //Control Drive Mode
     if(pressedStart && pressed1) driveMode = driveMode == 1 ? 0 : 1;
-    if(pressedStart && pressed1) driveMode = driveMode == 2 ? 0 : 2;
+    if(pressedStart && pressed2) driveMode = driveMode == 2 ? 0 : 2;
 }
