@@ -14,8 +14,10 @@ SoftwareSerial Serial1(2, 3);
 #define VEHICLE_TANK         0x02
 #define VEHICLE_LIGHT_STEP   0x40
 #define JOYSTICK_DATA_LENGTH 0x20
-#define JOYSTICK_DATA_START  0xAA
-#define JOYSTICK_DATA_END    0xBB
+#define JOYSTICK_DATA_STARTHI 0xAA
+#define JOYSTICK_DATA_STARTLO 0xBB
+#define JOYSTICK_DATA_ENDHI   0xBB
+#define JOYSTICK_DATA_ENDLO   0xAA
 
 #define ABS(a)               (a < 0 ? (a*(-1)) : a )
 #define MAX2(a, b)           (a >= b ? a : b)
@@ -517,15 +519,13 @@ void receiveBytes(Stream* stream)
 
         if (recvInProgress == true) 
         {
-            if (rb != JOYSTICK_DATA_END) 
+            if (rb != JOYSTICK_DATA_ENDHI) 
             {
                 receivedBytes[ndx] = rb;
-                if (ndx++ >= JOYSTICK_DATA_LENGTH) 
-                {
-                    ndx = JOYSTICK_DATA_LENGTH - 1;
-                }
+                if (ndx++ >= JOYSTICK_DATA_LENGTH) ndx = JOYSTICK_DATA_LENGTH - 1;
             }
             else 
+            if (stream->available() ? stream->read() == JOYSTICK_DATA_ENDLO : false)
             {
                 receivedBytes[ndx] = '\0'; // terminate the string
                 recvInProgress = false;
@@ -535,10 +535,7 @@ void receiveBytes(Stream* stream)
             }
         }
 
-        else if (rb == JOYSTICK_DATA_START) 
-        {
-            recvInProgress = true;
-        }
+         else if (rb == JOYSTICK_DATA_STARTHI && ((stream->available() ? stream->read() == JOYSTICK_DATA_STARTLO : false))) recvInProgress = true;
     }
 }
 
