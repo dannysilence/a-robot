@@ -266,12 +266,13 @@ void receiveBytes(Stream* stream)
 
         if (recvInProgress == true) 
         {
-            if (rb != JOYSTICK_DATA_END) 
+            if (rb != JOYSTICK_DATA_ENDHI) 
             {
                 receivedBytes[ndx] = rb;
                 if (ndx++ >= JOYSTICK_DATA_LENGTH) ndx = JOYSTICK_DATA_LENGTH - 1;
             }
             else 
+            if (stream->available() ? stream->read() == JOYSTICK_DATA_ENDLO : false)
             {
                 receivedBytes[ndx] = '\0'; // terminate the string
                 recvInProgress = false;
@@ -280,7 +281,7 @@ void receiveBytes(Stream* stream)
                 newData = true;
             }
         }
-        else if (rb == JOYSTICK_DATA_START) recvInProgress = true;
+        else if (rb == JOYSTICK_DATA_STARTHI && ((stream->available() ? stream->read() == JOYSTICK_DATA_STARTLO : false))) recvInProgress = true;
     }
 }
 
