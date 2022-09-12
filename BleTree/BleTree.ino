@@ -62,10 +62,9 @@ void setup(){
 
 void loop()
 {
-    readSensors();
     receiveBytes(&Serial1);        
     if(showNewData())
-    {
+    {     
         static uint8_t pid = 0, _pid = 0;        
         uint8_t a = receivedBytes[0], b = receivedBytes[1], c = receivedBytes[2], d = receivedBytes[3];
         
@@ -78,6 +77,7 @@ void loop()
         _pid = pid;
 
         checkButtons();
+        readSensors();
 
         if(driveMode == 0) {
           print("op=noop, dm=");
@@ -90,11 +90,13 @@ void loop()
         } else 
         if (driveMode == 2) {
           pumpOn();
-          delay(1500);
+          delay(1000);
           pumpOff();
-          delay(1500);
+          delay(1000);
         }
     }
+
+    
 }
 
 void readSensors(){
