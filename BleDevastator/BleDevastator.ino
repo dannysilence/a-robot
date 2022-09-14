@@ -3,10 +3,10 @@
 #include <Servo.h>
 #include <SoftwareSerial.h>
 
-#include "HUSKYLENS.h"
+//#include "HUSKYLENS.h"
 
 SoftwareSerial Serial1(2, 3);
-SoftwareSerial lensSerial(10, 11);
+SoftwareSerial Serial2(8, 9);
 
 
 #define DEBUG_DELAY          0x7F  
@@ -20,14 +20,17 @@ int E2 = 7;    //PLL based M2 Speed Control
 int M1 = 5;    //PLL based M1 Direction Control
 int M2 = 6;    //PLL based M2 Direction Control
 
-int L1 = 9;    //Front Light Control
+int L1 = 11;    //Front Light Control
 int L2 = 10;   //Rare Light Control
 
-Stream* _pad;
+Stream* _cam;
 Stream* _log;
+Stream* _pad;
+
 Servo servo;
 
 // General State Parts
+bool useCam        = false;
 bool useLogs       = true;
 bool useDelay      = false;
 
@@ -219,12 +222,18 @@ void checkButtons()
         sendLog(m);
         if(useDelay) delay(DEBUG_DELAY);
     }
-
     
         //Control Drive Mode
         if(pressedSelect && pressed1) driveMode = 1;
         if(pressedSelect && pressed2) driveMode = 2;
         if(pressedSelect && pressed3) driveMode = 3;        
+        if(pressedSelect && pressedStart) {
+          if(useCam) {
+            stopCam(_cam);
+          } else {
+            startCam(_cam);
+          }
+        }
 
         //Control Debug Logging and Delays
         if(pressedR1 && pressed1) useLogs = true;
@@ -246,11 +255,8 @@ void checkButtons()
 
         if(pressedL == true || pressedR == true)
         {
-//          {
-//            //int p0 = servo.read();
             int p1 = pressedR ? -5 : +5;
             moveServo(p1);
-//          }
         }
 }
 
@@ -266,13 +272,13 @@ void receiveBytes(Stream* stream)
 
         if (recvInProgress == true) 
         {
-            if (rb != JOYSTICK_DATA_ENDHI) 
+            if (rb != JOYSTICK_DATA_END) 
             {
                 receivedBytes[ndx] = rb;
                 if (ndx++ >= JOYSTICK_DATA_LENGTH) ndx = JOYSTICK_DATA_LENGTH - 1;
             }
             else 
-            if (stream->available() ? stream->read() == JOYSTICK_DATA_ENDLO : false)
+            if (stream->available() /*? stream->read() == JOYSTICK_DATA_ENDLO : false*/)
             {
                 receivedBytes[ndx] = '\0'; // terminate the string
                 recvInProgress = false;
@@ -281,7 +287,7 @@ void receiveBytes(Stream* stream)
                 newData = true;
             }
         }
-        else if (rb == JOYSTICK_DATA_STARTHI && ((stream->available() ? stream->read() == JOYSTICK_DATA_STARTLO : false))) recvInProgress = true;
+        else if (rb == JOYSTICK_DATA_START /*&& ((stream->available() ? stream->read() == JOYSTICK_DATA_START : false))*/) recvInProgress = true;
     }
 }
 
@@ -334,10 +340,36 @@ void moveServo(int p)
     if(useLogs) sendLog(m);
 }
 
+void startCam(Stream* cam) {
+  if(useLogs) 
+  {        
+    String m = "Camera: "; m += useCam ? "ON" : "OFF"; m += "->"; m += "ON"; //m += ": "; m += String(level, HEX);
+        
+    sendLog(m);
+    //if(useDelay) delay(DEBUG_DELAY);
+  }
+
+  useCam = true;
+}
+
+void stopCam(Stream* cam) {
+  if(useLogs) 
+  {        
+    String m = "Camera: "; m += useCam ? "ON" : "OFF"; m += "->"; m += "OFF"; //m += ": "; m += String(level, HEX);
+        
+    sendLog(m);
+    //if(useDelay) delay(DEBUG_DELAY);
+  }
+
+  useCam = false;
+}
+
+
 void setup() 
 {
     Serial.begin(115200);
     Serial1.begin(115200);
+    Serial2.begin(115200);
 
     for(int i=4;i<=7;i++) pinMode(i, OUTPUT);
 
@@ -345,11 +377,11 @@ void setup()
     pinMode(L2, OUTPUT);
     pinMode(A4, INPUT);
     
-    _pad = &(Serial);
+    _cam = &(Serial2);
     _log = &(Serial1);
+    _pad = &(Serial);
 
     sendLog("RoboTank is ready!");
-
 
     servo.attach(A4);
 }

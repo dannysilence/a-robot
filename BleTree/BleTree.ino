@@ -20,6 +20,7 @@ int airTemperature;  // environment temperature
 int soilHumidity;   //soil moisture
 
 bool useLogs = true;
+bool usePump = false;
 
 // Joystick Buttons State Parts 
 bool pressed1      = false;
@@ -81,12 +82,14 @@ void loop()
         readSensors();
 
         if(driveMode == 0) {
-          print("op=noop, dm=");
-          println(driveMode);
+          String m = "op=noop, dm=";
+          m+=driveMode;
+          println(m);
         } else
         if(driveMode == 1) {
-          print("op=humidiate, dm=");
-          println(driveMode);
+          String m = "op=humidiate, dm=";
+          m+=driveMode;
+          println(m);
           humidiate();
         } else 
         if (driveMode == 2) {
@@ -95,73 +98,88 @@ void loop()
           pumpOff();
           delay(1000);
         }
+    } else {
+      readSensors();  
     }
-
-    
 }
 
 void readSensors(){
   int chk;
   chk = DHT.read(DHT11_PIN);   //Read Data
+  String m = "{RX:\"";
   switch (chk){
     case DHTLIB_OK:
-                print("OK,\t");
+                m+="OK\",";
                 break;
     case DHTLIB_ERROR_CHECKSUM:
-                print("Checksum error,\t");
+                m+="CS\",";
                 break;
     case DHTLIB_ERROR_TIMEOUT:
-                print("Time out error,\t");
+                m+="TO\",";
                 break;
     default:
-                print("Unknown error,\t");
+                m+="NA\",";
                 break;
   }
   airHumidity=DHT.humidity;
   airTemperature=DHT.temperature;
   soilHumidity=analogRead(MOISTURE_PIN);
 
-  print("airHumidity:");
-  print(airHumidity);
-  print(",\t");
-  print("airTemperature:");
-  print(airTemperature);
-  print(",\t");
-  print("soilHumidity:");
-  println(soilHumidity);
+  m+="AH:";
+  m+=airHumidity;
+  m+=",";
+  m+="AT:";
+  m+=airTemperature;
+  m+=",";
+  m+="SH:";
+  m+=soilHumidity;
+  m+=",";
+  m+="PO:";
+  m+=usePump?1:0;
+  m+=",";
+  m+="DM:";
+  m+=driveMode;
+  m+="}  ";
+  println(m);
 
   delay(1000);
 }
 
-void print(String m)
-{
-  Serial.print(m);
-  Serial1.print(m);
-}
+//void print(String m)
+//{
+//  Serial.print(m);
+//
+//  int len = m.length();
+//  byte buf[len];
+//  m.getBytes(buf, len);
+//  Serial1.write(0xAA);
+//  Serial1.write(buf, len);
+//  Serial1.write(0xBB);
+//}
 
 void println(String m)
 {
   Serial.println(m);
-  Serial1.println(m);
+
+  int len = m.length();
+  byte buf[len];
+  m.getBytes(buf, len);
+  byte startBytes[2]; startBytes[0] = 0x11; startBytes[1] = 0x22; 
+  byte endBytes[2]; endBytes[0] = 0x22; endBytes[1] = 0x11;
+  Serial1.write(startBytes, 2);
+  Serial1.write(buf, len);
+  Serial1.write(endBytes, 2);
 }
 
-void print(int m)
-{
-  Serial.print(m);
-  Serial1.print(m);
-}
-
-void println(int m)
-{
-  Serial.println(m);
-  Serial1.println(m);
-}
 
 //open pump
 void pumpOn()
 {
-  print("pumpOn, dm=");
-  println(driveMode);
+  String m = "pumpOn, dm=";
+  m+=driveMode;
+  println(m);
+
+  usePump=true;
   
   digitalWrite(5, HIGH);
   digitalWrite(6, HIGH);
@@ -169,8 +187,11 @@ void pumpOn()
 //close pump
 void pumpOff()
 {
-  print("pumpOff, dm=");
-  println(driveMode);
+  String m = "pumpOff, dm=";
+  m+=driveMode;
+  println(m);
+
+  usePump=false;
   
   digitalWrite(5, LOW);
   digitalWrite(6, LOW);
@@ -178,12 +199,14 @@ void pumpOff()
 
 void humidiate() {
   soilHumidity = map(analogRead(MOISTURE_PIN), 0, 1023, 0, 100);    //Map analog value to 0~100% soil moisture value
-  print("humidiate, dm=");
-  print(driveMode);
-  print(", cv=");
-  print(soilHumidity);
-  print(", tv=");
-  println(setHumidity);
+  
+  String m = "humidiate, dm=";
+  m+=driveMode;
+  m+=", cv=";
+  m+=soilHumidity;
+  m+=", tv=";
+  m+=setHumidity;
+  println(m);
   if (soilHumidity < setHumidity) {
     pumpOn();
   } else {
