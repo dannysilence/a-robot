@@ -6,6 +6,7 @@ arduino related things
 Arduino based robot repo, _a_ in a-robot means Arduino :)
 Here there is an Arduino based code for Gamepad (BleJoystick) and RoboCar (later also for RoboTank like Devastator).
 
+![image](https://github.com/dannysilence/a-robot/raw/main/blunoBasicDemo.png)
 
 ### Prerequisites
 
