@@ -120,8 +120,9 @@ void Read_Frequencies() {
   digitalWrite(RESET, LOW);
   delayMicroseconds(200);
 
+  int j = 0;
   //Read frequencies for each band
-  for (int j = 0, freq_amp = 0; freq_amp < 7; freq_amp++, j++)
+  for (int freq_amp = 0; freq_amp < 7; freq_amp++)
   {
     if(freq_amp == 3 || freq_amp == 5) continue;
     
@@ -132,6 +133,7 @@ void Read_Frequencies() {
 
     Frequencies_One[j] = analogRead(DC_One);
     Frequencies_Two[j] = analogRead(DC_Two);
+    j++;
   }
 }
 
