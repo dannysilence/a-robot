@@ -83,10 +83,8 @@ Display left, right;
 #define DC_Two A1
 
 //Define spectrum variables
-int freq_amp;
 int Frequencies_One[5];
 int Frequencies_Two[5];
-//int i;
 
 /********************Setup Loop*************************/
 void setup() {
@@ -113,7 +111,6 @@ void setup() {
 void loop() {
   Read_Frequencies();
   Graph_Frequencies();
-  delay(20);
 }
 
 /*******************Pull frquencies from Spectrum Shield********************/
@@ -123,9 +120,8 @@ void Read_Frequencies() {
   digitalWrite(RESET, LOW);
   delayMicroseconds(200);
 
-  int j = 0;
   //Read frequencies for each band
-  for (freq_amp = 0; freq_amp < 7; freq_amp++)
+  for (int j = 0, freq_amp = 0; freq_amp < 7; freq_amp++, j++)
   {
     if(freq_amp == 3 || freq_amp == 5) continue;
     
@@ -136,33 +132,11 @@ void Read_Frequencies() {
 
     Frequencies_One[j] = analogRead(DC_One);
     Frequencies_Two[j] = analogRead(DC_Two);
-    j++;
   }
 }
 
-/*****************Print Out Band Values for Serial Plotter*****************/
-void Graph_Frequencies() {
-  for (int i = 0; i < 5; i++)
-  {
-    Serial.print(Frequencies_One[i]);
-    Serial.print(" ");
-//    Serial.print(Frequencies_Two[i]);
-//    Serial.print(" ");
-//    Serial.print( (Frequencies_One[i] + Frequencies_Two[i]) / 2 );
-//    Serial.print("    ");
-  }
-   Serial.print("      ");
-  for (int i = 0; i < 5; i++)
-  {
-//    Serial.print(Frequencies_One[i]);
-//    Serial.print(" ");
-    Serial.print(Frequencies_Two[i]);
-    Serial.print(" ");
-//    Serial.print( (Frequencies_One[i] + Frequencies_Two[i]) / 2 );
-//    Serial.print("    ");
-  }
-  Serial.println();
-
+void Graph_Frequencies() 
+{
   left.drawBands(Frequencies_One);
   right.drawBands(Frequencies_Two);
 }
