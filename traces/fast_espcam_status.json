@@ -1,2 +1,5 @@
 fast vga wifi mjpeg presets:
 {"0xd3":8,"0x111":0,"0x132":9,"xclk":20,"pixformat":3,"framesize":8,"quality":39,"brightness":0,"contrast":0,"saturation":0,"sharpness":0,"special_effect":0,"wb_mode":0,"awb":1,"awb_gain":1,"aec":0,"aec2":0,"ae_level":0,"aec_value":168,"agc":0,"agc_gain":7,"gainceiling":0,"bpc":0,"wpc":1,"raw_gma":1,"lenc":1,"hmirror":1,"dcw":0,"colorbar":0,"led_intensity":-1}
+
+middle speeed hd with 3/44 quality
+{"0xd3":12,"0x111":0,"0x132":54,"xclk":20,"pixformat":3,"framesize":11,"quality":22,"brightness":0,"contrast":0,"saturation":0,"sharpness":0,"special_effect":0,"wb_mode":0,"awb":1,"awb_gain":1,"aec":1,"aec2":0,"ae_level":0,"aec_value":168,"agc":0,"agc_gain":4,"gainceiling":0,"bpc":0,"wpc":0,"raw_gma":1,"lenc":0,"hmirror":0,"dcw":1,"colorbar":0,"led_intensity":-1}

@@ -1,29 +1,56 @@
+#define ARDUINOJSON_DECODE_UNICODE 0 
+
 #include <stdint.h>
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include <Servo.h>
 #include <SoftwareSerial.h>
+#include <Wire.h>
 
 //#include "HUSKYLENS.h"
 
+#if defined(ARDUINO_AVR_UNO)
 SoftwareSerial Serial1(2, 3);
-SoftwareSerial Serial2(8, 9);
+#endif
+
+
+StaticJsonDocument<256> myStateDoc;
+JsonObject myState;
+
+
 
 
 #define DEBUG_DELAY          0x7F  
 #define VEHICLE_LIGHT_STEP   0x40
-#define JOYSTICK_DATA_LENGTH 0x40
-#define JOYSTICK_DATA_START  0xAA
-#define JOYSTICK_DATA_END    0xBB
+#define JOYSTICK_DATA_LENGTH 0xFF
+#define JOYSTICK_DATA_START  0x11
+#define JOYSTICK_DATA_START0 0x22
+#define JOYSTICK_DATA_END    0x23
+#define JOYSTICK_DATA_END0   0x12
 
 int E1 = 4;    //PLL based M1 Speed Control
 int E2 = 7;    //PLL based M2 Speed Control
 int M1 = 5;    //PLL based M1 Direction Control
 int M2 = 6;    //PLL based M2 Direction Control
+int R1 = A7;   //Servo Motor Pin
 
+#if defined(ARDUINO_AVR_UNO)
 int L1 = 11;    //Front Light Control
 int L2 = 10;   //Rare Light Control
+int I1 = 8;
+int O1 = 9;
+#endif
 
-Stream* _cam;
+
+#if defined(ARDUINO_AVR_MEGA2560)
+int L1 = 14;    //Front Light Control
+int L2 = 15;   //Rare Light Control
+int I1 = 8;
+int O1 = 9;
+#endif
+
+
+//Stream* _cam;
 Stream* _log;
 Stream* _pad;
 
@@ -33,6 +60,7 @@ Servo servo;
 bool useCam        = false;
 bool useLogs       = true;
 bool useDelay      = false;
+bool useHusky      = false;
 
 // Joystick Buttons State Parts 
 bool pressed1      = false;
@@ -50,7 +78,9 @@ bool pressedR2     = false;
 bool pressedStart  = false;
 bool pressedSelect = false;
 
-uint8_t driveMode = 1;          // Drive mode 1 - vehicle drives front/back by left joystick, left/right - by right, drive mode 2 - all directions handled by left joystick, drive mode 3 - all directions handled by right joystick
+uint8_t driveMode = 1;  
+
+String mac = "n/a";// Drive mode 1 - vehicle drives front/back by left joystick, left/right - by right, drive mode 2 - all directions handled by left joystick, drive mode 3 - all directions handled by right joystick
  
 // Joystick Message Retrieving Parts   
 bool newData       = false;
@@ -61,6 +91,14 @@ uint8_t receivedBytes[JOYSTICK_DATA_LENGTH];
 uint8_t v1 = 0x7F, v2 = 0x7F;
 uint8_t _b3 = 0x00, _b4 = 0x00, b3 = 0x00, b4 = 0x00;
 uint8_t _l0 = 0x00;
+
+const int huskyPin = O1;   //ledPin
+const int buttonPin = I1; //Button to perform interrupt 
+int huskyToggle = LOW;     //led state 
+
+//variables to keep track of the timing of recent interrupts
+unsigned long button_time = 0;  
+unsigned long last_button_time = 0; 
 
 void driveMotor(byte m1p, byte m2p)
 {   
@@ -176,6 +214,63 @@ uint8_t getYMove(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
     default: return c;
   }
 }
+//
+//void readMac() {
+//  if(mac == "n/a") {
+//      Serial.println(" ");
+//      Serial.write("+++"); Serial.println("\r\n"); delay(500);  
+//      String z = Serial.readString(); z.trim();
+//      //Serial.println(z);
+//      Serial1.println(z);
+//      //if(z.indexOf("Enter AT Mode") != -1) {
+//        Serial.write("AT+MAC=?\r\n");/*Serial.println("\r\n"); */delay(500);  
+//        z = Serial.readString(); z.trim();
+//        mac = z;
+////        type = getType(mac);
+//  
+//        //Serial.println("AT+MAC=?");
+//        //Serial.println(z);
+//        Serial1.println(z);
+//
+//        Serial.write("AT+EXIT\r\n");/*Serial.println("\r\n"); */delay(500);
+//    
+//        z = Serial.readString(); z.trim();
+////        if(z != "OK") { err = true; }
+//        //Serial.println("AT+EXIT");
+//        //Serial.println(z);
+//        Serial1.println(z);
+//      //}
+//    }
+//}
+//
+//bool _init  =false;
+//String getType()
+//{
+//  readMac();
+//  
+//  if(mac == "0xC4BE8423427B") return "Car";
+//  if(mac == "0xC4BE84201608") return "Tank";
+//  if(mac == "0x") return "Tank";
+//  if(mac == "0x30E283AD8A78") return "Mega";
+//
+//  _init = true;
+//
+//  return "Thing";
+//}
+
+
+void sendMessage(Stream* stream, String m)
+{
+  int len = m.length();
+  byte src[len+0x08];
+
+  m.getBytes(src, len+1);
+  stream->write(JOYSTICK_DATA_START);
+  // stream->write(JOYSTICK_DATA_START0);
+  stream->write(src, len);
+  stream->write(JOYSTICK_DATA_END);
+  // stream->write(JOYSTICK_DATA_END0);
+}
 
 void checkButtons()
 {
@@ -228,11 +323,7 @@ void checkButtons()
         if(pressedSelect && pressed2) driveMode = 2;
         if(pressedSelect && pressed3) driveMode = 3;        
         if(pressedSelect && pressedStart) {
-          if(useCam) {
-            stopCam(_cam);
-          } else {
-            startCam(_cam);
-          }
+          if(useCam==true) useCam = false; else useCam = true;
         }
 
         //Control Debug Logging and Delays
@@ -263,16 +354,18 @@ void checkButtons()
 void receiveBytes(Stream* stream) 
 {
     static bool recvInProgress = false;
+    static uint8_t lastRb = 0;
     static uint8_t ndx = 0;
     uint8_t rb;   
 
     while (stream->available() > 0 && newData == false) 
     {
-        rb = stream->read();
+        rb = stream->read(); 
+        _log->write(rb);       
 
         if (recvInProgress == true) 
         {
-            if (rb != JOYSTICK_DATA_END) 
+            if (/*!((rb == JOYSTICK_DATA_END0) &&*/ lastRb == JOYSTICK_DATA_END)
             {
                 receivedBytes[ndx] = rb;
                 if (ndx++ >= JOYSTICK_DATA_LENGTH) ndx = JOYSTICK_DATA_LENGTH - 1;
@@ -287,21 +380,30 @@ void receiveBytes(Stream* stream)
                 newData = true;
             }
         }
-        else if (rb == JOYSTICK_DATA_START /*&& ((stream->available() ? stream->read() == JOYSTICK_DATA_START : false))*/) recvInProgress = true;
+        else if (rb == JOYSTICK_DATA_START) recvInProgress = true;
+
+        lastRb = rb;
     }
 }
 
 void sendLog(String m)
 {
+  const int LEN_LIMIT = 0Xff;
   if(useLogs) 
   {  
-    _log->println(m);
-    //_pad->write(0xAA);
-    _pad->println(m);
-    //_pad->write(0xBB);
-//    Serial.write(0xAA);
-    Serial.print(m);
-//    Serial.write(0xBB);
+    StaticJsonDocument<LEN_LIMIT> doc;
+    doc["type"] = "log"; // a-ka log item
+    doc["value"] = m;
+
+    char buf[LEN_LIMIT];
+    int l = serializeJson(doc, buf);
+    buf[l++]=0x0D;
+    buf[l++]=0x0A;
+    buf[l++]=0x00;
+
+    String s = buf;
+    sendMessage(&Serial, s);
+    //sendMessage(&Serial1, s);
   }  
 }
 
@@ -340,55 +442,153 @@ void moveServo(int p)
     if(useLogs) sendLog(m);
 }
 
-void startCam(Stream* cam) {
-  if(useLogs) 
-  {        
-    String m = "Camera: "; m += useCam ? "ON" : "OFF"; m += "->"; m += "ON"; //m += ": "; m += String(level, HEX);
-        
-    sendLog(m);
-    //if(useDelay) delay(DEBUG_DELAY);
+String camAddress[2];
+String testCamera()
+{
+  sendLog("Camera I2C Test Started(1/2)..");
+  myStateDoc["value"]["ca"] = JsonArray();
+  
+  Wire.requestFrom(0x20, 64);
+  Serial.println("Camera I2C Request Sent..");
+  String msg = "";
+  while(Wire.available()) {
+
+    char c = Wire.read();    // Receive a byte as character
+    msg += c;
+    //Serial.print(c);         // Print the character
   }
 
-  useCam = true;
-}
-
-void stopCam(Stream* cam) {
-  if(useLogs) 
-  {        
-    String m = "Camera: "; m += useCam ? "ON" : "OFF"; m += "->"; m += "OFF"; //m += ": "; m += String(level, HEX);
-        
-    sendLog(m);
-    //if(useDelay) delay(DEBUG_DELAY);
+  String msg1 = msg;
+  msg1.trim();
+  int n = 0;
+  if(msg1 != "") {
+    camAddress[n] = msg1;
+    myStateDoc["value"]["ca"][n] = msg;
+    n++;
+  }
+  
+  sendLog("Camera I2C Test Started(2/2)..");
+  Wire.requestFrom(0x21, 64);
+  //Serial.println("Camera I2C Request Sent..");
+  msg = "";
+  while(Wire.available()) {
+    char c = Wire.read();    // Receive a byte as character
+    msg += c;
+    //Serial.print(c);         // Print the character
   }
 
-  useCam = false;
+  msg1 = msg;
+  msg1.trim();
+  
+  if(msg1 != "") {
+    camAddress[n] = msg1;
+    myStateDoc["value"]["ca"][n] = msg;
+  }
+
+  sendLog("Camera I2C Test Ended");
 }
 
+void initMyState(){
+    myStateDoc["type"] = "state";
+    JsonObject myState = myStateDoc.createNestedObject("value");
+    
+//    readMac(); 
+    myStateDoc["value"]["id"] = mac;
+    myStateDoc["value"]["ca"] = JsonArray();
+    for(int i = 0; i < 2; i++){
+      myStateDoc["value"]["ca"][i] = camAddress[i];
+    }
+    myStateDoc["value"]["ct"] = "tank";//getType();
+//    myState["value"] = JsonArray();    
+    myStateDoc["value"]["dm"] = driveMode;
+    myStateDoc["value"]["lv"] = _l0;
+    myStateDoc["value"]["v"] = JsonArray();
+    myStateDoc["value"]["v"][0] = v1;
+    myStateDoc["value"]["v"][1] = v2;
+}
+
+void sendMyState() {
+    char buf[0xFF];
+
+    myStateDoc["value"]["ca"] = JsonArray();
+    for(int i = 0; i < /*camAddress.length()*/2; i++){
+      myStateDoc["value"]["ca"][i] = camAddress[i];
+    }
+    //myStateDoc["value"]["ct"] = "tank";
+    myStateDoc["value"]["dm"] = driveMode;
+    myStateDoc["value"]["lv"] = _l0;
+    myStateDoc["value"]["v"] = JsonArray();
+    myStateDoc["value"]["v"][0] = v1;
+    myStateDoc["value"]["v"][1] = v2;
+
+    int l = serializeJson(myStateDoc, buf);
+    String s = buf;
+    
+    sendMessage(&Serial, s);
+    //sendMessage(&Serial1, s);
+//    Serial.write(JOYSTICK_DATA_START);
+//    Serial.write(JOYSTICK_DATA_START0);
+//    Serial.write(buf, l);
+//    Serial.write(JOYSTICK_DATA_END);
+//    Serial.write(JOYSTICK_DATA_END0);
+//    Serial.write(0x0D);
+//    Serial.write(0x0A);    
+}
+
+void button_ISR(){
+//  button_time = millis();
+  //check to see if increment() was called in the last 250 milliseconds
+//  if (button_time - last_button_time > 250){
+    sendLog("Interrupt ");
+    
+    huskyToggle = !huskyToggle ;
+    digitalWrite(huskyPin, huskyToggle );
+//    last_button_time = button_time;
+//    }
+}
 
 void setup() 
-{
+{ 
     Serial.begin(115200);
     Serial1.begin(115200);
-    Serial2.begin(115200);
+
+    //Serial2.begin(115200);
+    Wire.begin();
+//    Serial3.begin(115200);
 
     for(int i=4;i<=7;i++) pinMode(i, OUTPUT);
 
     pinMode(L1, OUTPUT);
     pinMode(L2, OUTPUT);
-    pinMode(A4, INPUT);
+    pinMode(huskyPin, OUTPUT);
+    pinMode(buttonPin, INPUT);
     
-    _cam = &(Serial2);
+    //_cam = &(Serial2);
     _log = &(Serial1);
+//    _log = &(Serial);
     _pad = &(Serial);
 
+    //sendMessage("CameraIPAddress=" + cip);
+
+    servo.attach(R1);
+    
+    Wire.begin(); 
+    Wire.setClock(100000);
+    //sendLog("I2C is ready as well!");
+
+    testCamera();
+
+    initMyState();
+    //testCamera();    
+    huskyToggle = digitalRead(I1);
     sendLog("RoboTank is ready!");
 
-    servo.attach(A4);
+    testCamera();
 }
+
 
 void loop() 
 { 
-//    sendLog("loop");
     receiveBytes(_pad);    
     if(showNewData())
     {
@@ -407,6 +607,20 @@ void loop()
         _pid = pid;
 
         driveMotor(v1, v2);        
-        checkButtons();
+        checkButtons(); 
+
+        if(useCam) testCamera();
+
+        sendMyState();
     }
+
+    int v1 = digitalRead(I1);
+    if(v1 != huskyToggle) {
+      sendLog("HUSKYLENS button is pressed");
+
+      digitalWrite(huskyPin, v1 == HIGH ? HIGH : LOW);
+      huskyToggle = v1;
+      //moveServo(30);
+    }
+    
 }

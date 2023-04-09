@@ -8,16 +8,14 @@ SoftwareSerial Serial1(2, 3);
 
 #endif
 
-#define BLOCK_FROM           0xFF
-#define DEBUG_DELAY          0x7F  
-#define VEHICLE_CAR          0x01
-#define VEHICLE_TANK         0x02
-#define VEHICLE_LIGHT_STEP   0x40
-#define JOYSTICK_DATA_LENGTH 0x20
-#define JOYSTICK_DATA_STARTHI 0xAA
-#define JOYSTICK_DATA_STARTLO 0xBB
-#define JOYSTICK_DATA_ENDHI   0xBB
-#define JOYSTICK_DATA_ENDLO   0xAA
+#define BLOCK_FROM              0xFF
+#define DEBUG_DELAY             0x7F  
+#define VEHICLE_CAR             0x01
+#define VEHICLE_TANK            0x02
+#define VEHICLE_LIGHT_STEP      0x40
+#define JOYSTICK_DATA_LENGTH    0x20
+#define JOYSTICK_DATA_START     0xAA
+#define JOYSTICK_DATA_END       0xBB
 
 #define ABS(a)               (a < 0 ? (a*(-1)) : a )
 #define MAX2(a, b)           (a >= b ? a : b)
@@ -26,16 +24,14 @@ SoftwareSerial Serial1(2, 3);
 #define MIN(a, b, c)         (a <= b && a <= c ? a : (b <= c && b <= a ? b : c))
 #define MID(a, b, c)         (a <= b && a >= c ? a : (b <= c && b >= a ? b : c))
 
-//const byte VEHICLE_TYPE = VEHICLE_CAR;    // car
-const byte VEHICLE_TYPE = VEHICLE_TANK;    // tank
+const byte VEHICLE_TYPE = VEHICLE_CAR;    // car
 
 int E1 = 4;    //PLL based M1 Speed Control
 int E2 = 7;    //PLL based M2 Speed Control
 int M1 = 5;    //PLL based M1 Direction Control
 int M2 = 6;    //PLL based M2 Direction Control
 
-int L1 = 9;    //Front Light Control
-int L2 = 10;    //Rare Light Control
+int L0 = 9;    //Front Light Control
 
 Stream* _pad;
 Stream* _log;
@@ -75,9 +71,6 @@ uint8_t v1 = 0x7F, v2 = 0x7F;
 uint8_t _b3 = 0x00, _b4 = 0x00, b3 = 0x00, b4 = 0x00;
 uint8_t _l0 = 0x00;
 uint16_t rangeFront = 0, rangeRare = 0;
-
-
-
 
 void SetServoPos(byte a, byte b)
 {
@@ -279,11 +272,9 @@ void light(uint8_t level)
 
     byte x = level == 0 ? HIGH : LOW;
     
-    digitalWrite(L1, x);
-    digitalWrite(L2, x);
+    digitalWrite(L0, x);
     delay(10);
-    analogWrite(L1, level);
-    analogWrite(L2, level);
+    analogWrite(L0, level);
 
     _l0 = level;
 }
@@ -306,14 +297,12 @@ void setup()
     int i;
     for(i=4;i<=7;i++) pinMode(i, OUTPUT);
 
-    pinMode(L1, OUTPUT);
-    pinMode(L2, OUTPUT);
-
+    pinMode(L0, OUTPUT);
     pinMode(A6, INPUT);
     pinMode(A7, INPUT);
 
     _pad = &(Serial);
-    _log = &(Serial1);
+    _log = &(Serial);
 
     String m = "Robo";
     m += vehicleType();
@@ -355,7 +344,6 @@ uint8_t getYMove(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
 void loop() 
 { 
     receiveBytes(_pad);
-    //checkBlocks();
     
     if(showNewData())
     {
@@ -368,9 +356,7 @@ void loop()
         
         v1 = getYMove(a, b, c, d);
         v2 = getXMove(a, b, c, d);
-//        v1 = receivedBytes[2];
-//        v2 = receivedBytes[1];
-
+        
         b3 = receivedBytes[6];
         b4 = receivedBytes[7];
 
@@ -415,8 +401,6 @@ void loop()
             light(l0); 
         }
     }
-
-    //checkBlocks();
 }
 
 void checkButtons()
@@ -516,16 +500,18 @@ void receiveBytes(Stream* stream)
     while (stream->available() > 0 && newData == false) 
     {
         rb = stream->read();
+        String szrb = String(rb, HEX); szrb += " ";
+        Serial.print(szrb);
 
         if (recvInProgress == true) 
         {
-            if (rb != JOYSTICK_DATA_ENDHI) 
+            if (rb != JOYSTICK_DATA_END) 
             {
                 receivedBytes[ndx] = rb;
                 if (ndx++ >= JOYSTICK_DATA_LENGTH) ndx = JOYSTICK_DATA_LENGTH - 1;
             }
             else 
-            if (stream->available() ? stream->read() == JOYSTICK_DATA_ENDLO : false)
+            //if (stream->available() ? stream->read() == JOYSTICK_DATA_END : false)
             {
                 receivedBytes[ndx] = '\0'; // terminate the string
                 recvInProgress = false;
@@ -535,7 +521,7 @@ void receiveBytes(Stream* stream)
             }
         }
 
-         else if (rb == JOYSTICK_DATA_STARTHI && ((stream->available() ? stream->read() == JOYSTICK_DATA_STARTLO : false))) recvInProgress = true;
+         else if (rb == JOYSTICK_DATA_START) recvInProgress = true;
     }
 }
 

@@ -12,15 +12,15 @@ dht11 DHT;
 #define MOISTURE_PIN A2  //soil Moisture sensor//
 #define DHT11_PIN    9   //DHT11
 #define DATA_LENGTH 0xFF
-#define DATA_START  0x5B
-#define DATA_END    0x5C
+#define DATA_START  0xAA
+#define DATA_END    0xBB
 
 int airHumidity;   //environment humidity
 int airTemperature;  // environment temperature
 int soilHumidity;   //soil moisture
 
 bool useLogs = true;
-bool usePump = false;
+bool usePumps = false;
 
 // Joystick Buttons State Parts 
 bool pressed1      = false;
@@ -45,11 +45,17 @@ uint8_t _b3 = 0x00, _b4 = 0x00, b3 = 0x00, b4 = 0x00;
 uint8_t _l0 = 0x00;
 
 int setHumidity = 50;
+int btnState = 0;
 
 // Controol Message Retrieving Parts   
 bool newData       = false;
 uint8_t numReceived = 0;
 uint8_t receivedBytes[DATA_LENGTH];
+
+int P1 = 2;
+int P2 = 3;
+int L1 = 4;
+int N1 = 7;
 
 void setup(){
   Serial.begin(115200);
@@ -57,16 +63,30 @@ void setup(){
 
   pinMode(5, OUTPUT);
   pinMode(6, OUTPUT);
+  
+  pinMode(P1, OUTPUT);
+  pinMode(P2, OUTPUT);
+  pinMode(L1, OUTPUT);
+  pinMode(N1, INPUT);
 
   digitalWrite(5, LOW);
   digitalWrite(6, LOW);
+  btnState = digitalRead(N1);
 }
-
-int QUANTITY = 1;
-//int QUANTITY = 4;
 
 void loop()
 {
+    int btn = digitalRead(N1);
+    String ll = "digitalRead(N1)=";
+    ll+=btn;
+    println(ll);
+    if(btn==0 && btnState == 1) {
+      println("ACTION");
+      pumps(!usePumps);
+    } else {
+      digitalWrite(L1, LOW);
+    }
+    btnState=btn;
     receiveBytes(&Serial1);        
     if(showNewData())
     {     
@@ -82,7 +102,6 @@ void loop()
         _pid = pid;
 
         checkButtons();
-        for(int i = 0; i < QUANTITY; i++) readSensors(i);
 
         if(driveMode == 0) {
           String m = "op=noop, dm=";
@@ -93,7 +112,7 @@ void loop()
           String m = "op=humidiate, dm=";
           m+=driveMode;
           println(m);
-          humidiate();
+//          humidiate();
         } else 
         if (driveMode == 2) {
           pumpOn();
@@ -102,56 +121,42 @@ void loop()
           delay(1000);
         }
     } else {
-      for(int i = 0; i < QUANTITY; i++) readSensors(i); 
+//      readSensors();  
     }
 }
 
-void readSensors(int i){
-  int chk;
-  chk = DHT.read(DHT11_PIN);   //Read Data
-  String m = "{ID:";
-  m+=i;
-  m+=",RX:\"";
 
-  switch (chk){
-    case DHTLIB_OK:
-                m+="OK\",";
-                break;
-    case DHTLIB_ERROR_CHECKSUM:
-                m+="CS\",";
-                break;
-    case DHTLIB_ERROR_TIMEOUT:
-                m+="TO\",";
-                break;
-    default:
-                m+="NA\",";
-                break;
-  }
-  
-  airHumidity=DHT.humidity;
-  airTemperature=DHT.temperature;
-  soilHumidity=analogRead(MOISTURE_PIN);
 
-  m+=",";
-  m+="AH:";
-  m+=airHumidity;
-  m+=",";
-  m+="AT:";
-  m+=airTemperature;
-  m+=",";
-  m+="SH:";
-  m+=soilHumidity;
-  m+=",";
-  m+="PO:";
-  m+=usePump?1:0;
-  m+=",";
-  m+="DM:";
-  m+=driveMode;
-  m+="}  ";
-  println(m);
 
-  delay(1000);
+
+void pumpOn()
+{
+  int x = HIGH;
+  digitalWrite(P1, x);  
+  digitalWrite(P2, x);
+  digitalWrite(L1, x);
 }
+
+void pumpOff()
+{
+  int x = LOW;
+  digitalWrite(P1, x);  
+  digitalWrite(P2, x);
+  digitalWrite(L1, x);
+}
+
+
+void pumps(bool enable) {
+  
+  
+  String m = "pumps ";
+  m+=usePumps?"ON":"OFF";
+  m+="->";
+  m+=enable?"ON":"OFF";
+  println(m);
+  if(enable) pumpOn(); else pumpOff();
+}
+
 
 void println(String m)
 {
@@ -160,65 +165,21 @@ void println(String m)
   int len = m.length();
   byte buf[len];
   m.getBytes(buf, len);
-  
-  byte startBytes[4]; startBytes[0] = 0x5B; startBytes[1] = 0x5B; startBytes[2] = 0x20; startBytes[3] = 0x20; 
-  byte endBytes[4]; endBytes[0] = 0x20; endBytes[1] = 0x20; endBytes[2] = 0x5C; endBytes[3] = 0x5C;
-  
-  Serial1.write(startBytes, 4);
+  byte startBytes[2]; startBytes[0] = 0x11; startBytes[1] = 0x22; 
+  byte endBytes[2]; endBytes[0] = 0x22; endBytes[1] = 0x11;
+  Serial1.write(startBytes, 2);
   Serial1.write(buf, len);
-  Serial1.write(endBytes, 4);
+  Serial1.write(endBytes, 2);
 }
 
 
-//open pump
-void pumpOn()
-{
-  String m = "pumpOn, dm=";
-  m+=driveMode;
-  println(m);
-
-  usePump=true;
-  
-  digitalWrite(5, HIGH);
-  digitalWrite(6, HIGH);
-}
-//close pump
-void pumpOff()
-{
-  String m = "pumpOff, dm=";
-  m+=driveMode;
-  println(m);
-
-  usePump=false;
-  
-  digitalWrite(5, LOW);
-  digitalWrite(6, LOW);
-}
-
-void humidiate() {
-  soilHumidity = map(analogRead(MOISTURE_PIN), 0, 1023, 0, 100);    //Map analog value to 0~100% soil moisture value
-  
-  String m = "humidiate, dm=";
-  m+=driveMode;
-  m+=", cv=";
-  m+=soilHumidity;
-  m+=", tv=";
-  m+=setHumidity;
-  println(m);
-  if (soilHumidity < setHumidity) {
-    pumpOn();
-  } else {
-    pumpOff();
-  }
-}
 
 
 void receiveBytes(Stream* stream) 
 {
     static bool recvInProgress = false;
-    static uint8_t rbA = 0, rbB = 0, rbC = 0;
     static uint8_t ndx = 0;
-    uint8_t rb;                                                     
+    uint8_t rb;   
 
     while (stream->available() > 0 && newData == false) 
     { 
@@ -226,7 +187,12 @@ void receiveBytes(Stream* stream)
 
         if (recvInProgress == true) 
         {
-            if (rb == 0x20 && rbA == 0x20 && rbB == 0x5C && rbC == 0x5C) 
+            if (rb != DATA_END) 
+            {
+                receivedBytes[ndx] = rb;
+                if (ndx++ >= DATA_LENGTH) ndx = DATA_LENGTH - 1;
+            }
+            else 
             {
                 receivedBytes[ndx] = '\0'; // terminate the string
                 recvInProgress = false;
@@ -234,19 +200,8 @@ void receiveBytes(Stream* stream)
                 ndx = 0;
                 newData = true;
             }
-            else 
-            {
-                receivedBytes[ndx] = rb;
-                if (ndx++ >= DATA_LENGTH) ndx = DATA_LENGTH - 1;
-            }
         }
-        else if(rb == 0x5B && rbA == 0x5B && rbB == 0x20 && rbC == 0x20) {
-          recvInProgress = true;
-        }
-
-        rbC = rbB;
-        rbB = rbA;
-        rbA = rb;
+        else if (rb == DATA_START) recvInProgress = true;
     }
 }
 
